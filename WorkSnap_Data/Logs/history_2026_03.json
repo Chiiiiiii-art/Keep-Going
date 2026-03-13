@@ -1,0 +1,19 @@
+[
+    {
+        "timestamp": "2026-03-13 16:05:03",
+        "projects": [
+            {
+                "tag": "Dev",
+                "window_title": "archive_controller.py - Keep-Going - Visual Studio Code",
+                "image_path": "Dev\\20260313_160502_archive_control.png",
+                "note": "這是關於 archive_co 的自動測試備註"
+            },
+            {
+                "tag": "Uncategorized",
+                "window_title": "GitHub Desktop",
+                "image_path": "Uncategorized\\20260313_160503_GitHub_Desktop.png",
+                "note": "這是關於 GitHub Des 的自動測試備註"
+            }
+        ]
+    }
+]

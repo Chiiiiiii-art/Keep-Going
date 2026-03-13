@@ -8,7 +8,7 @@ class DataManager:
     
     def __init__(self, base_dir="WorkSnap_Data"):
         self.base_dir = Path(base_dir)
-        self.categories = ["Art", "Dev", "Writing"]
+        self.categories = ["Art", "Dev", "Writing", "Uncategorized"]
         self.logs_dir = self.base_dir / "Logs"
         self._init_directories()
 
