@@ -12,17 +12,17 @@ class CaptureService:
     def focus_window(self, hwnd):
         """將一般視窗喚醒至最上層"""
         try:
-            # 如果視窗是最小化的，先還原
             if win32gui.IsIconic(hwnd):
                 win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
             
-            # 嘗試置頂
             shell = Application().connect(handle=hwnd)
             shell.top_window().set_focus()
-            time.sleep(0.3) # 等待視窗動畫完成
+            
+            # 修正點：針對 PS 等大型 App 增加等待時間
+            # 從原本的 0.3s 增加到 0.8s，確保 GPU 完成重繪
+            time.sleep(3) 
             return True
-        except Exception as e:
-            print(f"無法置頂視窗: {e}")
+        except Exception:
             return False
 
     def focus_browser_tab(self, tab_id):

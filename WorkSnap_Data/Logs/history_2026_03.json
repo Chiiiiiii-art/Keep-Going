@@ -51,5 +51,175 @@
                 "url": "chrome://newtab/"
             }
         ]
+    },
+    {
+        "timestamp": "2026-03-13 20:52:17",
+        "projects": [
+            {
+                "tag": "Dev",
+                "window_title": "main_gui.py - Keep-Going - Visual Studio Code",
+                "image_path": "Dev\\20260313_205216_main_guipy__K.png",
+                "note": "實作雛形"
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 20:52:17",
+        "projects": [
+            {
+                "tag": "Art",
+                "window_title": "star guardian_miss fortune.psd @ 48.8% (橢圓 3, RGB/8)",
+                "image_path": "Art\\20260313_205217_star_guardian_m.png",
+                "note": "繪製完成精緻線搞"
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 20:52:19",
+        "projects": [
+            {
+                "tag": "Writing",
+                "window_title": "靈子力學首部曲：狐狸與兔 | Notion",
+                "image_path": "Writing\\20260313_205217_靈子力學首部曲狐狸與兔__.png",
+                "note": "仍然卡在同樣的問題",
+                "url": "https://www.notion.so/23e56a40999f808f98c7dc8f1be1a983"
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 20:56:11",
+        "projects": [
+            {
+                "tag": "Dev",
+                "window_title": "main_gui.py - Keep-Going - Visual Studio Code",
+                "image_path": "Dev\\20260313_205611_main_guipy__K.png",
+                "note": ""
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 20:56:12",
+        "projects": [
+            {
+                "tag": "Art",
+                "window_title": "star guardian_miss fortune.psd @ 48.8% (橢圓 3, RGB/8)",
+                "image_path": "Art\\20260313_205611_star_guardian_m.png",
+                "note": ""
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 20:56:13",
+        "projects": [
+            {
+                "tag": "Writing",
+                "window_title": "靈子力學首部曲：狐狸與兔 | Notion",
+                "image_path": "Writing\\20260313_205612_靈子力學首部曲狐狸與兔__.png",
+                "note": "",
+                "url": "https://www.notion.so/23e56a40999f808f98c7dc8f1be1a983"
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 20:56:35",
+        "projects": [
+            {
+                "tag": "Dev",
+                "window_title": "main_gui.py - Keep-Going - Visual Studio Code",
+                "image_path": "Dev\\20260313_205634_main_guipy__K.png",
+                "note": ""
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 20:56:35",
+        "projects": [
+            {
+                "tag": "Art",
+                "window_title": "star guardian_miss fortune.psd @ 48.8% (橢圓 3, RGB/8)",
+                "image_path": "Art\\20260313_205635_star_guardian_m.png",
+                "note": ""
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 20:56:36",
+        "projects": [
+            {
+                "tag": "Writing",
+                "window_title": "靈子力學首部曲：狐狸與兔 | Notion",
+                "image_path": "Writing\\20260313_205635_靈子力學首部曲狐狸與兔__.png",
+                "note": "",
+                "url": "https://www.notion.so/23e56a40999f808f98c7dc8f1be1a983"
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 21:07:45",
+        "projects": [
+            {
+                "tag": "Dev",
+                "window_title": "main_gui.py - Keep-Going - Visual Studio Code",
+                "image_path": "Dev\\20260313_210744_main_guipy__K.png",
+                "note": ""
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 21:07:46",
+        "projects": [
+            {
+                "tag": "Art",
+                "window_title": "star guardian_miss fortune.psd @ 48.8% (橢圓 3, RGB/8)",
+                "image_path": "Art\\20260313_210745_star_guardian_m.png",
+                "note": ""
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 21:07:47",
+        "projects": [
+            {
+                "tag": "Writing",
+                "window_title": "靈子力學首部曲：狐狸與兔 | Notion",
+                "image_path": "Writing\\20260313_210746_靈子力學首部曲狐狸與兔__.png",
+                "note": "",
+                "url": "https://www.notion.so/23e56a40999f808f98c7dc8f1be1a983"
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 21:09:23",
+        "projects": [
+            {
+                "tag": "Dev",
+                "window_title": "main_gui.py - Keep-Going - Visual Studio Code",
+                "image_path": "Dev\\20260313_210920_main_guipy__K.png",
+                "note": ""
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 21:09:27",
+        "projects": [
+            {
+                "tag": "Art",
+                "window_title": "star guardian_miss fortune.psd @ 48.8% (橢圓 3, RGB/8)",
+                "image_path": "Art\\20260313_210923_star_guardian_m.png",
+                "note": ""
+            }
+        ]
+    },
+    {
+        "timestamp": "2026-03-13 21:09:31",
+        "projects": [
+            {
+                "tag": "Writing",
+                "window_title": "靈子力學首部曲：狐狸與兔 | Notion",
+                "image_path": "Writing\\20260313_210927_靈子力學首部曲狐狸與兔__.png",
+                "note": "",
+                "url": "https://www.notion.so/23e56a40999f808f98c7dc8f1be1a983"
+            }
+        ]
     }
 ]

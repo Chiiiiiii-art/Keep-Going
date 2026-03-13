@@ -26,6 +26,7 @@ class KeepGoingEngine:
             for tab in tabs:
                 all_items.append({
                     "type": "browser_tab",
+                    "exe": "comet.exe",
                     "category": tab['category'],
                     "title": tab['title'],
                     "url": tab['url'],
