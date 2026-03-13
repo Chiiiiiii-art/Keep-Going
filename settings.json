@@ -1,9 +1,7 @@
 {
     "rules": {
         "Art": [
-            "Photoshop.exe",
-            "ClipStudioPaint.exe",
-            "Krita.exe"
+            "Photoshop.exe"
         ],
         "Dev": [
             "Code.exe",
@@ -11,8 +9,7 @@
             "WindowsTerminal.exe"
         ],
         "Writing": [
-            "Notion.exe",
-            "Obsidian.exe"
+            "Notion.exe"
         ]
     },
     "blacklist_exes": [
@@ -26,7 +23,6 @@
     ],
     "blacklist_titles": [
         "Program Manager",
-        "Keep-Going",
         "設定",
         "Windows 輸入體驗"
     ]

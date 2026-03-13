@@ -32,5 +32,24 @@
                 "note": "這是關於 star guard 的自動測試備註"
             }
         ]
+    },
+    {
+        "timestamp": "2026-03-13 20:20:59",
+        "projects": [
+            {
+                "tag": "Uncategorized",
+                "window_title": "Gemini",
+                "image_path": "Uncategorized\\20260313_202057_Gemini.png",
+                "note": "這是關於 Gemini 的自動測試備註",
+                "url": "https://gemini.google.com/u/0/gem/462551403132/0b9f6b1aba1d3dbe"
+            },
+            {
+                "tag": "Uncategorized",
+                "window_title": "New Tab",
+                "image_path": "Uncategorized\\20260313_202058_New_Tab.png",
+                "note": "這是關於 New Tab 的自動測試備註",
+                "url": "chrome://newtab/"
+            }
+        ]
     }
 ]

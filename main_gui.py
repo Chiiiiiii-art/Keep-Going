@@ -120,6 +120,19 @@ class KeepGoingUI(QMainWindow):
         self.archive_btn.setFixedHeight(45)
         self.archive_btn.setStyleSheet("background-color: #27ae60; color: white; font-size: 14px; font-weight: bold;")
         self.archive_btn.clicked.connect(self.start_archive)
+
+        self.settings_btn = QPushButton("⚙ 系統設定")
+        self.settings_btn.clicked.connect(self.open_settings)
+        btn_layout.insertWidget(0, self.settings_btn) # 放在最左邊
+
+        # 實作 open_settings 方法
+        def open_settings(self):
+            from settings_dialog import SettingsDialog
+            dialog = SettingsDialog(self)
+            if dialog.exec():
+                # 設定儲存後，自動刷新掃描清單
+                QMessageBox.information(self, "成功", "設定已更新，正在重新掃描...")
+                self.refresh_list()
         
         btn_layout.addWidget(self.refresh_btn)
         btn_layout.addWidget(self.archive_btn)
@@ -154,7 +167,27 @@ class KeepGoingUI(QMainWindow):
             new_cat = self.cat_combo.currentText()
             self.current_selected_widget.data['category'] = new_cat
             self.current_selected_widget.label.setText(f"[{new_cat}] {self.current_selected_widget.data['title'][:55]}")
-
+    def open_settings(self):
+            """開啟設定對話框並處理設定更新後的邏輯"""
+            try:
+                from settings_dialog import SettingsDialog
+                dialog = SettingsDialog(self)
+                
+                # exec() 會開啟模態視窗，程式會在此暫停直到視窗關閉
+                if dialog.exec():
+                    # 如果使用者點擊了「儲存設定」 (dialog.accept())
+                    self.status_label.setText("設定已更新，正在重新整理清單...")
+                    
+                    # 通知 scanner 更新它的內部規則快取
+                    self.engine.scanner.update_settings()
+                    
+                    # 重新執行掃描，讓新的黑名單或分類規則生效
+                    self.refresh_list()
+                    
+                    QMessageBox.information(self, "設定更新", "規則已成功套用！")
+            except Exception as e:
+                QMessageBox.critical(self, "錯誤", f"無法開啟設定頁面: {e}")
+                
     def start_archive(self):
         selected_data = [w.data for w in self.items_widgets if w.checkbox.isChecked()]
         if not selected_data:
