@@ -1,10 +1,12 @@
 import sys
+# 在任何 pywinauto 相關導入前設定，解決 COM 執行緒警告
+sys.coinit_flags = 2 
+
 import os
 from datetime import datetime
 from pathlib import Path
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QFrame)
-from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtCore import Qt
 
 # 導入各個功能視窗
@@ -17,7 +19,7 @@ class KeepGoingLauncher(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Keep-Going 控制中心")
-        self.setFixedSize(320, 480)
+        self.setFixedSize(320, 500)
         
         # 設為工具視窗樣式
         self.setWindowFlags(Qt.WindowType.WindowCloseButtonHint | Qt.WindowType.WindowMinimizeButtonHint)
@@ -28,61 +30,65 @@ class KeepGoingLauncher(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         self.main_layout = QVBoxLayout(central_widget)
-        self.main_layout.setSpacing(15)
-        self.main_layout.setContentsMargins(20, 20, 20, 20)
+        self.main_layout.setSpacing(12)
+        self.main_layout.setContentsMargins(24, 32, 24, 24)
 
         # --- 標題區域 ---
-        title_label = QLabel("KEEP GOING")
-        title_label.setFont(QFont("Impact", 28))
+        title_label = QLabel("Keep Going")
+        title_label.setObjectName("TitleLabel")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("color: #27ae60; letter-spacing: 2px;")
         self.main_layout.addWidget(title_label)
 
         subtitle = QLabel("創作者進度管理系統")
+        subtitle.setObjectName("SubTitleLabel")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("color: #7f8c8d; font-size: 12px; margin-bottom: 10px;")
         self.main_layout.addWidget(subtitle)
+        
+        self.main_layout.addSpacing(20)
 
-        # --- 功能按鈕區 ---
-        self.btn_archive = self.create_nav_button("🚀 下班存檔紀錄", "#27ae60", self.open_archive)
-        self.btn_inspector = self.create_nav_button("🔍 歷史進度檢閱", "#3498db", self.open_inspector)
-        self.btn_review = self.create_nav_button("🌅 手動晨間回顧", "#e67e22", self.open_review)
-        self.btn_settings = self.create_nav_button("⚙ 系統規則設定", "#95a5a6", self.open_settings)
+        # --- 功能按鈕區 (彩色 Emoji 版本) ---
+        # 呼叫時傳入 3 個參數：圖示、文字、回呼函數
+        self.btn_archive = self.create_nav_button("🚀", "下班存檔紀錄", self.open_archive)
+        self.btn_inspector = self.create_nav_button("🔍", "歷史進度檢閱", self.open_inspector)
+        self.btn_review = self.create_nav_button("🌅", "手動晨間回顧", self.open_review)
+        self.btn_settings = self.create_nav_button("⚙️", "系統規則設定", self.open_settings)
 
-        # --- 底部狀態欄 ---
+        # --- 底部狀態欄 (移除多餘框線) ---
         self.main_layout.addStretch()
         
         status_frame = QFrame()
-        status_frame.setStyleSheet("background-color: #1a252f; border-radius: 10px;")
+        status_frame.setObjectName("StatusFrame")
         status_layout = QVBoxLayout(status_frame)
+        status_layout.setContentsMargins(0, 15, 0, 0)
         
-        self.last_save_label = QLabel(f"最後存檔: {self.get_last_save_time()}")
-        self.last_save_label.setStyleSheet("color: #bdc3c7; font-size: 11px;")
+        self.last_save_label = QLabel(f"最後存檔日期：{self.get_last_save_time()}")
+        self.last_save_label.setObjectName("StatusLabel")
         self.last_save_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         status_layout.addWidget(self.last_save_label)
         
         self.main_layout.addWidget(status_frame)
 
-    def create_nav_button(self, text, color, callback):
-        btn = QPushButton(text)
-        btn.setFixedHeight(55)
+    def create_nav_button(self, icon_char, text, callback):
+        """定義接收 3 個位置參數：self, icon_char, text, callback"""
+        btn = QPushButton()
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: #2c3e50;
-                color: {color};
-                border: 2px solid {color};
-                border-radius: 10px;
-                font-size: 15px;
-                font-weight: bold;
-                text-align: left;
-                padding-left: 20px;
-            }}
-            QPushButton:hover {{
-                background-color: {color};
-                color: white;
-            }}
-        """)
+        
+        layout = QHBoxLayout(btn)
+        layout.setContentsMargins(16, 0, 16, 0)
+        layout.setSpacing(15)
+        
+        icon_label = QLabel(icon_char)
+        icon_label.setObjectName("IconLabel")
+        icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        
+        text_label = QLabel(text)
+        text_label.setObjectName("ButtonText")
+        text_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        
+        layout.addWidget(icon_label)
+        layout.addWidget(text_label)
+        layout.addStretch()
+        
         btn.clicked.connect(callback)
         self.main_layout.addWidget(btn)
         return btn
@@ -93,11 +99,9 @@ class KeepGoingLauncher(QMainWindow):
         logs = sorted(list(log_dir.glob("*.json")), reverse=True)
         if not logs: return "尚無紀錄"
         
-        # 這裡簡化為抓取最後一個檔案的修改日期
         mtime = datetime.fromtimestamp(logs[0].stat().st_mtime)
         return mtime.strftime("%Y-%m-%d %H:%M")
 
-    # --- 導航邏輯 ---
     def open_archive(self):
         self.archive_win = KeepGoingUI()
         self.archive_win.show()
@@ -113,19 +117,14 @@ class KeepGoingLauncher(QMainWindow):
     def open_settings(self):
         self.settings_win = SettingsDialog(self)
         self.settings_win.exec()
-        # 設定完後刷新標題（如果有的話）
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     
-    # 設定全局暗色調
-    palette = app.palette()
-    from PyQt6.QtGui import QColor, QPalette
-    dark_palette = QPalette()
-    dark_palette.setColor(QPalette.ColorRole.Window, QColor(44, 62, 80))
-    dark_palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
-    app.setPalette(dark_palette)
+    qss_file = Path("style.qss")
+    if qss_file.exists():
+        app.setStyleSheet(qss_file.read_text(encoding="utf-8"))
     
     launcher = KeepGoingLauncher()
     launcher.show()

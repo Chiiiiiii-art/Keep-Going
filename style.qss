@@ -1,0 +1,87 @@
+/* style.qss - Notion 進階互動版 */
+
+QWidget {
+    background-color: #191919;
+    color: #EBEBEA;
+    font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
+    font-size: 14px;
+}
+
+/* 標題與副標題 */
+QLabel#TitleLabel { font-size: 28px; font-weight: bold; }
+QLabel#SubTitleLabel { color: #9B9A97; }
+
+/* --- 全域 QCheckBox (修復右上角綠色勾勾) --- */
+QCheckBox {
+    spacing: 8px;
+    color: #9B9A97;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid #444444;
+    background: transparent;
+}
+
+QCheckBox::indicator:hover {
+    border: 1.5px solid #666666;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+QCheckBox::indicator:checked {
+    background-color: #EBEBEA;
+    border: 1.5px solid #EBEBEA;
+    image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23191919" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>');
+}
+
+/* --- 樹狀清單樣式 --- */
+QTreeWidget {
+    outline: none;
+    background: transparent;
+    border: none;
+}
+
+QTreeWidget::item {
+    height: 48px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+QTreeWidget::item:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* 移除預設選取色 */
+QTreeWidget::item:selected { background-color: transparent; color: #EBEBEA; }
+
+/* --- 標籤按鈕：增加回饋感與固定寬度 --- */
+QPushButton#TagButton {
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    border: none;
+    padding: 2px 10px;
+}
+
+QPushButton#TagButton:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+QPushButton#TagButton:pressed {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 隱藏下拉小箭頭但保留間距 (Notion 風格) */
+QPushButton::menu-indicator { image: none; } 
+
+/* --- 底部主按鈕 --- */
+QPushButton#ArchiveButton {
+    background-color: #2F2F2F;
+    color: #EBEBEA;
+    font-weight: bold;
+    border-radius: 6px;
+    border: 1px solid #3F3F3F;
+}
+
+QPushButton#ArchiveButton:hover { background-color: #3C3C3C; border: 1px solid #4F4F4F; }
