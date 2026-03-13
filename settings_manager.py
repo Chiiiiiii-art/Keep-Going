@@ -5,11 +5,6 @@ class ConfigManager:
     def __init__(self, config_path="settings.json"):
         self.config_path = Path(config_path)
         self.default_config = {
-            "rules": {
-                "Art": ["Photoshop.exe", "ClipStudioPaint.exe", "Krita.exe"],
-                "Dev": ["Code.exe", "devenv.exe", "WindowsTerminal.exe"],
-                "Writing": ["Notion.exe", "Obsidian.exe"]
-            },
             "blacklist_exes": [
                 "explorer.exe", "SystemSettings.exe", "NVIDIA Overlay.exe", 
                 "TextInputHost.exe", "ApplicationFrameHost.exe", "ShellExperienceHost.exe",

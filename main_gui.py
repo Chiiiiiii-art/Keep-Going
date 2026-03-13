@@ -1,8 +1,15 @@
 import sys
 import os
 import json
+import ctypes # 新增：用於解決 DPI 造成的黑屏
 from urllib.parse import urlparse
 from pathlib import Path
+
+# --- 核心修正：強制開啟 Windows DPI 感知，解決高解析度螢幕 PS 截圖黑屏/偏移問題 ---
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2) # PROCESS_PER_MONITOR_DPI_AWARE
+except Exception:
+    ctypes.windll.user32.SetProcessDPIAware()
 
 # 環境初始化
 sys.coinit_flags = 2 
@@ -16,6 +23,12 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QAction
 from core_engine import KeepGoingEngine
 from archive_controller import ArchiveController
+
+class HoverLineEdit(QLineEdit):
+    """自定義輸入框：滑鼠懸停時自動獲得焦點"""
+    def enterEvent(self, event):
+        self.setFocus()
+        super().enterEvent(event)
 
 class ArchiveWorker(QThread):
     progress = pyqtSignal(int, str)
@@ -41,16 +54,13 @@ class KeepGoingUI(QMainWindow):
         self.engine = KeepGoingEngine()
         self.controller = ArchiveController()
         
-        # 記憶功能：儲存 ID 對應的 Tag
         self.load_memory()
-        
         self.init_ui()
         self.refresh_list()
 
     def load_memory(self):
-        """讀取歷史分類記憶"""
         self.memory_file = Path("WorkSnap_Data/tag_memory.json")
-        self.tag_memory = {} # id -> tag
+        self.tag_memory = {}
         if self.memory_file.exists():
             try:
                 with open(self.memory_file, 'r', encoding='utf-8') as f:
@@ -58,7 +68,6 @@ class KeepGoingUI(QMainWindow):
             except: pass
 
     def save_memory(self, identifier, tag):
-        """儲存單個項目的分類記憶"""
         self.tag_memory[identifier] = tag
         try:
             self.memory_file.parent.mkdir(parents=True, exist_ok=True)
@@ -79,7 +88,7 @@ class KeepGoingUI(QMainWindow):
         self.status_label.setObjectName("SubTitleLabel")
         
         self.filter_checkbox = QCheckBox("僅顯示已分類項目")
-        self.filter_checkbox.setChecked(False) # 預設關閉，讓使用者能看到未分類並指派
+        self.filter_checkbox.setChecked(True) 
         self.filter_checkbox.stateChanged.connect(self.refresh_list)
         
         top_bar.addWidget(self.status_label)
@@ -87,7 +96,7 @@ class KeepGoingUI(QMainWindow):
         top_bar.addWidget(self.filter_checkbox)
         main_layout.addLayout(top_bar)
 
-        # 樹狀清單：取消勾選框 (Indicator)
+        # 樹狀清單
         self.tree = QTreeWidget()
         self.tree.setColumnCount(2)
         self.tree.setHeaderHidden(True)
@@ -96,9 +105,9 @@ class KeepGoingUI(QMainWindow):
         self.tree.setFrameShape(QFrame.Shape.NoFrame)
         self.tree.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.tree.setSelectionMode(QTreeWidget.SelectionMode.NoSelection)
-        # 徹底隱藏勾選框圖示
         self.tree.setRootIsDecorated(True) 
         
+        self.tree.itemClicked.connect(self.handle_item_clicked)
         main_layout.addWidget(self.tree)
 
         # 底部
@@ -107,17 +116,20 @@ class KeepGoingUI(QMainWindow):
         main_layout.addWidget(self.progress_bar)
 
         footer_layout = QHBoxLayout()
+        
+        # 綁定專屬 ID 以利 QSS 樣式設定
         self.settings_btn = QPushButton("⚙️ 系統設定")
+        self.settings_btn.setObjectName("SettingsButton")
         self.settings_btn.setFixedWidth(120)
         self.settings_btn.clicked.connect(self.open_settings)
         
         self.refresh_btn = QPushButton("🔄 重新掃描")
+        self.refresh_btn.setObjectName("RefreshButton")
         self.refresh_btn.setFixedWidth(120)
         self.refresh_btn.clicked.connect(self.refresh_list)
         
         self.archive_btn = QPushButton("確認存檔並下班！")
         self.archive_btn.setObjectName("ArchiveButton")
-        self.archive_btn.setFixedHeight(50)
         self.archive_btn.clicked.connect(self.start_archive)
         
         footer_layout.addWidget(self.settings_btn)
@@ -139,7 +151,6 @@ class KeepGoingUI(QMainWindow):
         
         apps, browser_tabs = {}, {}
         for item in raw_items:
-            # 優先從記憶中恢復標籤
             identifier = item.get('url') or item['title']
             if identifier in self.tag_memory:
                 item['category'] = self.tag_memory[identifier]
@@ -154,26 +165,35 @@ class KeepGoingUI(QMainWindow):
             else:
                 apps.setdefault(exe, []).append(item)
 
-        # 渲染 App
+        # --- 渲染 App 與修正展開邏輯 ---
         for exe_name, items in apps.items():
             parent = QTreeWidgetItem(self.tree)
             parent.setText(0, f"💻 {exe_name}")
-            parent.setExpanded(True)
+            # 判斷是否包含已分類項目
+            has_tagged = any(d.get('category', 'Uncategorized') != 'Uncategorized' for d in items)
+            parent.setExpanded(has_tagged)
             parent.setForeground(0, Qt.GlobalColor.gray)
             for data in items: self._add_tree_item(parent, data)
 
-        # 渲染瀏覽器
+        # --- 渲染瀏覽器分頁與修正展開邏輯 ---
         if browser_tabs:
             b_parent = QTreeWidgetItem(self.tree)
             b_parent.setText(0, "🌐 Comet.exe (分頁)")
-            b_parent.setExpanded(True)
+            has_any_tagged_browser = False
+
             for domain, items in browser_tabs.items():
+                has_tagged = any(d.get('category', 'Uncategorized') != 'Uncategorized' for d in items)
+                if has_tagged:
+                    has_any_tagged_browser = True
+
                 d_node = QTreeWidgetItem(b_parent)
                 d_node.setText(0, f"📁 {domain}")
-                d_node.setExpanded(False)
+                d_node.setExpanded(has_tagged)
                 for data in items: self._add_tree_item(d_node, data)
+                
+            b_parent.setExpanded(has_any_tagged_browser)
 
-        self.status_label.setText(f"目前偵測到 {len(raw_items)} 個工作項目")
+        self.status_label.setText(f"目前顯示 {self.tree.topLevelItemCount()} 個群組")
 
     def _add_tree_item(self, parent_node, data):
         child = QTreeWidgetItem(parent_node)
@@ -185,11 +205,9 @@ class KeepGoingUI(QMainWindow):
         layout.setContentsMargins(5, 0, 5, 0)
         layout.setSpacing(15)
 
-        # 標籤按鈕 (固定寬度 100px)
-        tag_btn = self.create_tag_picker(data, container)
+        self.create_tag_picker(data, container)
         
-        # 備註框
-        note_edit = QLineEdit()
+        note_edit = HoverLineEdit()
         note_edit.setPlaceholderText("在此輸入進度備註...")
         note_edit.setFrame(False)
         note_edit.setStyleSheet("background: transparent; color: #9B9A97; font-size: 13px;")
@@ -199,17 +217,14 @@ class KeepGoingUI(QMainWindow):
 
     def create_tag_picker(self, data, container):
         tag_name = data.get('category', 'Uncategorized')
-        # 如果是 Uncategorized，顯示為空
         display_name = "(無標籤)" if tag_name == "Uncategorized" else tag_name
-        # 加入表情符號
         icon_map = {"Art": "🎨 ", "Dev": "💻 ", "Writing": "📝 ", "Uncategorized": ""}
         
         btn = QPushButton(f"{icon_map.get(tag_name, '')}{display_name}")
         btn.setObjectName("TagButton")
-        btn.setFixedWidth(110) # 固定長度
+        btn.setFixedWidth(110)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         
-        # 配色邏輯
         colors = {
             "Art": "background-color: #4D2D2D; color: #FFA3A3;",
             "Dev": "background-color: #2D3D4D; color: #A3D1FF;",
@@ -230,19 +245,25 @@ class KeepGoingUI(QMainWindow):
 
     def change_category(self, data, new_cat, container):
         data['category'] = new_cat
-        # 儲存記憶
         identifier = data.get('url') or data['title']
-        self.save_memory(identifier, new_cat)
         
-        # 重新整理該項目的標籤按鈕
+        if new_cat == "Uncategorized":
+            self.tag_memory.pop(identifier, None) 
+        else:
+            self.save_memory(identifier, new_cat)
+            
         for i in reversed(range(container.layout().count())):
             w = container.layout().itemAt(i).widget()
             if isinstance(w, QPushButton) and w.objectName() == "TagButton":
                 w.setParent(None)
         self.create_tag_picker(data, container)
 
+    def handle_item_clicked(self, item, column):
+        if item.childCount() > 0:
+            item.setExpanded(not item.isExpanded())
+        self.tree.clearSelection()
+
     def start_archive(self):
-        """僅收集有分配標籤的項目"""
         selected_data = []
         it = QTreeWidgetItemIterator(self.tree)
         while it.value():

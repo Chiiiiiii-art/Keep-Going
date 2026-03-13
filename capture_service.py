@@ -20,7 +20,7 @@ class CaptureService:
             
             # 修正點：針對 PS 等大型 App 增加等待時間
             # 從原本的 0.3s 增加到 0.8s，確保 GPU 完成重繪
-            time.sleep(3) 
+            time.sleep(5) 
             return True
         except Exception:
             return False

@@ -1,4 +1,3 @@
-# scanner.py 完整強化版
 import psutil
 import win32process
 import win32gui
@@ -12,7 +11,6 @@ class WindowScanner:
 
     def update_settings(self):
         config = self.config_mgr.load_config()
-        self.rules = config["rules"]
         self.blacklist_exes = config.get("blacklist_exes", [])
         self.blacklist_titles = config.get("blacklist_titles", [])
 
@@ -42,37 +40,18 @@ class WindowScanner:
             title = win32gui.GetWindowText(hwnd)
             exe_name = self.get_process_name(hwnd)
 
-            # 1. 優先判定：如果是 Keep-Going 程式本身，絕對排除
-            # 這裡改用更嚴謹的判定：標題符合且 EXE 是 Python 或打包後的名稱
-            if title == "Keep-Going | 下班進度紀錄":
-                return
+            if title == "Keep-Going | 下班進度紀錄": return
+            if any(bt in title for bt in self.blacklist_titles): return
+            if exe_name and exe_name.lower() in [e.lower() for e in self.blacklist_exes]: return
 
-            # 2. 標題黑名單過濾 (排除系統雜項)
-            if any(bt in title for bt in self.blacklist_titles):
-                return
-
-            # 3. 進程黑名單過濾
-            if exe_name and exe_name.lower() in [e.lower() for e in self.blacklist_exes]:
-                return
-
-            # 4. 自動分類邏輯
-            category = "Uncategorized"
-            for cat, exes in self.rules.items():
-                if exe_name and any(exe.lower() == exe_name.lower() for exe in exes):
-                    category = cat
-                    break
-            
-            # --- 關鍵修正：針對 VS Code 可能被誤殺的保險 ---
-            if exe_name and exe_name.lower() == "code.exe":
-                category = "Dev"
-
+            # 修正：所有項目預設為未分類，全權交由 memory 接管
             rect = win32gui.GetWindowRect(hwnd)
             w, h = rect[2] - rect[0], rect[3] - rect[1]
 
             active_windows.append({
                 "title": title,
                 "exe": exe_name or "Unknown",
-                "category": category,
+                "category": "Uncategorized", 
                 "hwnd": hwnd,
                 "rect": (rect[0], rect[1], w, h)
             })
