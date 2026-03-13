@@ -15,5 +15,22 @@
                 "note": "這是關於 GitHub Des 的自動測試備註"
             }
         ]
+    },
+    {
+        "timestamp": "2026-03-13 19:53:13",
+        "projects": [
+            {
+                "tag": "Dev",
+                "window_title": "archive_controller.py - Keep-Going - Visual Studio Code",
+                "image_path": "Dev\\20260313_195312_archive_control.png",
+                "note": "這是關於 archive_co 的自動測試備註"
+            },
+            {
+                "tag": "Art",
+                "window_title": "star guardian_miss fortune.psd @ 44.4% (橢圓 3, RGB/8)",
+                "image_path": "Art\\20260313_195313_star_guardian_m.png",
+                "note": "這是關於 star guard 的自動測試備註"
+            }
+        ]
     }
 ]

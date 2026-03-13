@@ -1,0 +1,33 @@
+{
+    "rules": {
+        "Art": [
+            "Photoshop.exe",
+            "ClipStudioPaint.exe",
+            "Krita.exe"
+        ],
+        "Dev": [
+            "Code.exe",
+            "devenv.exe",
+            "WindowsTerminal.exe"
+        ],
+        "Writing": [
+            "Notion.exe",
+            "Obsidian.exe"
+        ]
+    },
+    "blacklist_exes": [
+        "explorer.exe",
+        "SystemSettings.exe",
+        "NVIDIA Overlay.exe",
+        "TextInputHost.exe",
+        "ApplicationFrameHost.exe",
+        "ShellExperienceHost.exe",
+        "Taskmgr.exe"
+    ],
+    "blacklist_titles": [
+        "Program Manager",
+        "Keep-Going",
+        "設定",
+        "Windows 輸入體驗"
+    ]
+}
