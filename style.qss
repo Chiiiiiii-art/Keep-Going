@@ -1,23 +1,89 @@
-/* style.qss - Keep-Going Notion 視覺終極隔離版 */
+/* style.qss - Keep-Going Notion 視覺終極修復版 */
 
-/* --- 1. 全域基礎設定 --- */
-QWidget {
+/* --- 1. 全域背景與文字 (精準指定，修正 Launcher 黑框問題) --- */
+QMainWindow, QDialog {
     background-color: #191919;
+}
+
+QWidget {
     color: #EBEBEA;
     font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
     font-size: 14px;
 }
 
-QLabel#TitleLabel { font-size: 28px; font-weight: bold; }
-QLabel#SubTitleLabel { color: #9B9A97; }
+/* 確保所有文字標籤背景透明，避免遮擋按鈕懸停效果 */
+QLabel {
+    background: transparent;
+}
 
-/* --- 2. 樹狀清單 --- */
-QTreeWidget { background: transparent; border: none; outline: none; }
-QTreeWidget::item { height: 48px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); }
-QTreeWidget::item:hover { background-color: rgba(255, 255, 255, 0.04); }
-QTreeWidget::item:selected { background-color: transparent; }
+/* --- 2. 全域按鈕預設樣式 (讓系統設定內的按鈕套用 Notion 風格) --- */
+QPushButton {
+    background-color: #2A2A2A;
+    color: #EBEBEA;
+    border: 1px solid #3F3F3F;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #353535;
+    border: 1px solid #555555;
+}
+QPushButton:pressed {
+    background-color: #1E1E1E;
+}
 
-/* --- 3. 啟動器導航按鈕 (隔離關鍵) --- */
+/* 特定彈出視窗主/副按鈕樣式 */
+QPushButton#CancelButton {
+    background-color: transparent;
+    border: none;
+    color: #9B9A97;
+}
+QPushButton#CancelButton:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #EBEBEA;
+}
+QPushButton#PrimaryButton {
+    background-color: #EBEBEA;
+    color: #191919;
+    border: none;
+}
+QPushButton#PrimaryButton:hover {
+    background-color: #FFFFFF;
+}
+
+/* --- 3. 系統設定內的輸入框與下拉選單 --- */
+QLineEdit {
+    background-color: #141414;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #EBEBEA;
+}
+QLineEdit:focus {
+    border: 1px solid #555555;
+    background-color: #1A1A1A;
+}
+
+QComboBox {
+    background-color: #141414;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #EBEBEA;
+}
+QComboBox::drop-down {
+    border: none;
+}
+QComboBox QAbstractItemView {
+    background-color: #1E1E1E;
+    border: 1px solid #333;
+    selection-background-color: rgba(255, 255, 255, 0.1);
+    color: #EBEBEA;
+    outline: none;
+}
+
+/* --- 4. 啟動器導航按鈕 (Launcher) --- */
 QPushButton#NavButton {
     background-color: transparent;
     border: none;
@@ -29,9 +95,55 @@ QPushButton#NavButton {
 QPushButton#NavButton:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
-QPushButton#NavButton QLabel { background: transparent; }
+/* 強制確保啟動器按鈕內的字體透明 */
+QPushButton#NavButton QLabel { 
+    background: transparent; 
+}
 
-/* --- 4. 下拉選單 (QMenu) --- */
+/* --- 5. 樹狀清單 (主介面) --- */
+QTreeWidget {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+QTreeWidget::item {
+    height: 48px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+QTreeWidget::item:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+QTreeWidget::item:selected {
+    background-color: transparent;
+    color: #EBEBEA;
+}
+
+/* --- 6. 設定視窗：分類清單 (修正點擊覆蓋文字) --- */
+QListWidget {
+    background-color: #202020;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px;
+    outline: none; /* 移除點擊時的醜陋虛線框 */
+}
+QListWidget::item {
+    padding: 12px 15px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.02);
+    color: #EBEBEA;
+}
+QListWidget::item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+/* 使用半透明高亮，絕對不會覆蓋圖標與文字 */
+QListWidget::item:selected {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid #555555;
+    color: #FFFFFF;
+}
+
+/* --- 7. 下拉選單 (QMenu) --- */
 QMenu {
     background-color: #252525;
     border: 1px solid #333333;
@@ -41,19 +153,24 @@ QMenu {
 QMenu::item {
     padding: 8px 32px 8px 10px;
     border-radius: 4px;
-    color: white; /* 分類項目文字一律白色 */
+    color: white;
 }
 QMenu::item:selected {
-    background-color: rgba(255, 255, 255, 0.08); /* 懸停高亮 */
+    background-color: rgba(255, 255, 255, 0.08);
 }
-QMenu::separator { height: 1px; background: #333333; margin: 6px 8px; }
+QMenu::separator {
+    height: 1px;
+    background: #333333;
+    margin: 6px 8px;
+}
 
-/* --- 5. 功能按鈕 --- */
+/* --- 8. 主介面按鈕 --- */
 QPushButton#SettingsButton, QPushButton#RefreshButton {
     background-color: transparent;
     color: #9B9A97;
     border: none;
     min-height: 40px;
+    padding: 0 15px;
 }
 QPushButton#SettingsButton:hover, QPushButton#RefreshButton:hover {
     background-color: rgba(255, 255, 255, 0.05);
@@ -74,6 +191,85 @@ QPushButton#ArchiveButton:hover {
     background-color: rgba(255, 255, 255, 0.03);
 }
 
-/* --- 6. 輸入框 --- */
-QLineEdit#NoteEdit { background: transparent; color: #9B9A97; border: none; font-size: 13px; }
-QLineEdit#NoteEdit:focus { color: #EBEBEA; }
+/* --- 9. 輸入框與時數旋鈕 (主介面) --- */
+QLineEdit#NoteEdit {
+    background: transparent;
+    color: #9B9A97;
+    border: none;
+    font-size: 13px;
+    padding-left: 5px;
+}
+QLineEdit#NoteEdit:focus {
+    color: #EBEBEA;
+}
+QLabel#DurationLabel {
+    background-color: #262626;
+    color: #9B9A97;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 0px;
+}
+
+/* --- 10. CheckBox --- */
+QCheckBox { 
+    spacing: 10px; 
+    color: #9B9A97; 
+    font-weight: bold;
+}
+QCheckBox::indicator { 
+    width: 18px; 
+    height: 18px; 
+    border-radius: 4px; 
+    border: 1.5px solid #5A5A5A; 
+    background-color: transparent;
+}
+QCheckBox::indicator:hover { 
+    background-color: rgba(255, 255, 255, 0.05); 
+}
+QCheckBox::indicator:checked { 
+    background-color: #5A5A5A; 
+    border: 1.5px solid #5A5A5A;
+    image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwb2x5bGluZSBwb2ludHM9IjIwIDYgOSAxNyA0IDEyIi8+PC9zdmc+");
+}
+
+/* --- 11. 分割線與頁籤 (設定視窗) --- */
+QFrame#BottomSeparator {
+    background-color: #333333;
+    max-height: 1px;
+    border: none;
+}
+QTabWidget#SettingsTabs::pane {
+    border-top: 1px solid #333;
+    background: transparent;
+}
+QTabBar::tab {
+    background: transparent;
+    padding: 12px 25px;
+    color: #9B9A97;
+    font-weight: bold;
+}
+QTabBar::tab:selected {
+    color: #EBEBEA;
+    border-bottom: 2px solid #EBEBEA;
+}
+
+/* --- 12. 捲軸美化 --- */
+QScrollBar:vertical {
+    border: none;
+    background: transparent;
+    width: 8px;
+    margin: 0;
+}
+QScrollBar::handle:vertical {
+    background: #333;
+    min-height: 30px;
+    border-radius: 4px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #444;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}

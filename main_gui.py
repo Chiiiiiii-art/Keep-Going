@@ -5,7 +5,7 @@ import ctypes
 from urllib.parse import urlparse
 from pathlib import Path
 
-# --- 核心修正 1：強制開啟 Windows DPI 感知，解決雙螢幕偏移 ---
+# --- 核心修正：強制開啟 Windows DPI 感知 ---
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2) 
 except Exception:
@@ -36,7 +36,13 @@ def create_emoji_icon(emoji_char, size=20):
     painter.end()
     return QIcon(pixmap)
 
-# --- 自定義組件：時數選擇器 (新增視覺回饋) ---
+# --- 功能：懸停自動聚焦的輸入框 ---
+class HoverLineEdit(QLineEdit):
+    def enterEvent(self, event):
+        self.setFocus()
+        super().enterEvent(event)
+
+# --- 功能：時數選擇器 (修正：支援禁用狀態回饋) ---
 class DurationWidget(QLabel):
     def __init__(self, parent=None):
         super().__init__("0.0h", parent)
@@ -44,27 +50,37 @@ class DurationWidget(QLabel):
         self.setFixedWidth(60)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setObjectName("DurationLabel")
-        self.setCursor(Qt.CursorShape.SizeVerCursor)
         self.setMouseTracking(True)
+        self.active = True
         self.set_style(False)
 
+    def set_active(self, active):
+        self.active = active
+        self.set_style(False)
+        self.setCursor(Qt.CursorShape.SizeVerCursor if active else Qt.CursorShape.ArrowCursor)
+
     def set_style(self, is_hover):
-        # 透過程式碼動態控制，避免 CSS 全域干擾
+        if not self.active:
+            # 禁用狀態：半透明、無邊框感
+            self.setStyleSheet("background-color: rgba(255,255,255,0.02); color: #444; border: 1px solid #222; border-radius: 4px; font-size: 11px; font-weight: bold; padding: 4px 0px;")
+            return
+            
         color = "#EBEBEA" if is_hover else "#9B9A97"
         border = "1px solid #666666" if is_hover else "1px solid #333333"
         bg = "#2C2C2C" if is_hover else "#262626"
-        self.setStyleSheet(f"background-color: {bg}; color: {color}; border: {border}; border-radius: 4px; font-size: 11px; font-weight: bold; padding: 2px 0px;")
+        self.setStyleSheet(f"background-color: {bg}; color: {color}; border: {border}; border-radius: 4px; font-size: 11px; font-weight: bold; padding: 4px 0px;")
 
     def enterEvent(self, event): self.set_style(True)
     def leaveEvent(self, event): self.set_style(False)
+    
     def wheelEvent(self, event):
+        if not self.active: return
         delta = event.angleDelta().y()
         if delta > 0: self.hours += 0.5
         elif delta < 0 and self.hours >= 0.5: self.hours -= 0.5
         self.setText(f"{self.hours:.1f}h")
         event.accept()
 
-# --- 自定義組件：清除標籤 (白轉紅，無背景) ---
 class ClearTagWidget(QLabel):
     clicked = pyqtSignal()
     def __init__(self, parent=None):
@@ -88,7 +104,7 @@ class KeepGoingUI(QMainWindow):
         super().__init__()
         self.setWindowTitle("Keep-Going | 下班進度紀錄")
         self.resize(1100, 750)
-        self.center_window() # 修正雙螢幕偏移
+        self.center_window()
         self.engine = KeepGoingEngine()
         self.controller = ArchiveController()
         self.load_memory()
@@ -130,9 +146,12 @@ class KeepGoingUI(QMainWindow):
 
         self.tree = QTreeWidget(); self.tree.setColumnCount(2); self.tree.setHeaderHidden(True)
         self.tree.setColumnWidth(0, 550); self.tree.setFrameShape(QFrame.Shape.NoFrame); self.tree.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.tree.itemClicked.connect(self.on_item_clicked)
         main_layout.addWidget(self.tree)
 
         footer = QHBoxLayout()
+        footer.setSpacing(25) # 增加左下按鈕間距
+        
         self.settings_btn = QPushButton("⚙️ 系統設定"); self.settings_btn.setObjectName("SettingsButton")
         self.refresh_btn = QPushButton("🔄 重新掃描"); self.refresh_btn.setObjectName("RefreshButton")
         self.archive_btn = QPushButton("確認存檔並下班！"); self.archive_btn.setObjectName("ArchiveButton")
@@ -142,23 +161,48 @@ class KeepGoingUI(QMainWindow):
         footer.addWidget(self.settings_btn); footer.addWidget(self.refresh_btn); footer.addStretch(); footer.addWidget(self.archive_btn)
         main_layout.addLayout(footer)
 
+    def on_item_clicked(self, item, column):
+        if item.childCount() > 0: item.setExpanded(not item.isExpanded())
+
     def refresh_list(self):
         self.tree.clear()
         raw_items = self.engine.get_full_status()
-        apps, browser_tabs = {}, {}
+        cat_map = self.engine.scanner.config_mgr.get_category_map()
+        
+        apps = {}
         for item in raw_items:
             id_key = item.get('url') or item['title']
             if id_key in self.tag_memory: item['category'] = self.tag_memory[id_key]
+            else: item['category'] = item.get('category', 'Uncategorized')
+                
+            if item['category'] not in cat_map: item['category'] = 'Uncategorized'
             if self.filter_checkbox.isChecked() and item['category'] == "Uncategorized": continue
-            if item.get('type') == 'browser_tab': browser_tabs.setdefault(self.get_domain(item.get('url', '')), []).append(item)
-            else: apps.setdefault(item.get('exe', 'Unknown'), []).append(item)
+                
+            exe = item.get('exe', 'Unknown')
+            if exe not in apps: apps[exe] = {'normal': [], 'domains': {}}
+            is_browser = item.get('type') == 'browser_tab' or exe.lower() in ['chrome.exe', 'edge.exe', 'brave.exe', 'firefox.exe', 'comet.exe']
+            
+            if is_browser and 'url' in item and item['url']:
+                dom = self.get_domain(item.get('url'))
+                apps[exe]['domains'].setdefault(dom, []).append(item)
+            else:
+                apps[exe]['normal'].append(item)
 
-        for exe, items in apps.items():
-            p = QTreeWidgetItem(self.tree); p.setText(0, f"💻 {exe}"); p.setForeground(0, QColor("#666666")); p.setExpanded(True)
-            for d in items: self._add_tree_item(p, d)
-        for dom, items in browser_tabs.items():
-            b_p = QTreeWidgetItem(self.tree); b_p.setText(0, f"🌐 {dom}"); b_p.setForeground(0, QColor("#666666")); b_p.setExpanded(True)
-            for d in items: self._add_tree_item(b_p, d)
+        for exe, data in apps.items():
+            exe_node = QTreeWidgetItem(self.tree); exe_node.setText(0, f"💻 {exe}"); exe_node.setForeground(0, QColor("#9B9A97"))
+            exe_has_tagged = False
+            for d in data['normal']:
+                self._add_tree_item(exe_node, d)
+                if d.get('category') != 'Uncategorized': exe_has_tagged = True
+            for dom, d_items in data['domains'].items():
+                dom_node = QTreeWidgetItem(exe_node); dom_node.setText(0, f"🌐 {dom}"); dom_node.setForeground(0, QColor("#9B9A97"))
+                dom_has_tagged = False
+                for d in d_items:
+                    self._add_tree_item(dom_node, d)
+                    if d.get('category') != 'Uncategorized': dom_has_tagged = True; exe_has_tagged = True
+                dom_node.setExpanded(dom_has_tagged)
+            exe_node.setExpanded(exe_has_tagged)
+        self.status_label.setText(f"目前顯示 {self.tree.topLevelItemCount()} 個應用程式群組")
 
     def get_domain(self, url):
         try: return urlparse(url).netloc.replace("www.", "").split(".")[-2].capitalize()
@@ -170,9 +214,16 @@ class KeepGoingUI(QMainWindow):
         container = QWidget(); layout = QHBoxLayout(container); layout.setContentsMargins(5, 0, 5, 0); layout.setSpacing(15)
         
         self.create_tag_picker(data, container)
-        layout.addWidget(DurationWidget())
-        note = QLineEdit(data.get('note', '')); note.setPlaceholderText("在此輸入進度備註..."); note.setObjectName("NoteEdit")
-        layout.addWidget(note); self.tree.setItemWidget(child, 1, container)
+        
+        # --- 修正：旋鈕不消失，僅改變啟用狀態 ---
+        dur_widget = DurationWidget()
+        dur_widget.set_active(data.get('category', 'Uncategorized') != "Uncategorized")
+        layout.addWidget(dur_widget)
+        
+        note = HoverLineEdit(data.get('note', ''))
+        note.setPlaceholderText("在此輸入進度備註..."); note.setObjectName("NoteEdit")
+        layout.addWidget(note)
+        self.tree.setItemWidget(child, 1, container)
 
     def create_tag_picker(self, data, container):
         cat_map = self.engine.scanner.config_mgr.get_category_map()
@@ -181,9 +232,9 @@ class KeepGoingUI(QMainWindow):
         info = cat_map[tag_name]; style = info["style"]
         
         btn = QPushButton(f"{info['icon']} {tag_name if tag_name != 'Uncategorized' else '(無標籤)'}".strip())
-        btn.setObjectName("TagButton"); btn.setFixedWidth(110); btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        # 標籤文字一律白色，背景使用動態顏色
-        btn.setStyleSheet(f"background-color: {style['bg']}; color: white; border: {style['border']}; border-radius: 4px; font-weight: bold; font-size: 11px; padding: 2px 5px;")
+        btn.setObjectName("TagButton"); btn.setFixedWidth(120); btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # --- 修正：增加垂直 padding (上下內距) 讓標籤更寬敞 ---
+        btn.setStyleSheet(f"background-color: {style['bg']}; color: white; border: {style['border']}; border-radius: 4px; font-weight: bold; font-size: 11px; padding: 6px 10px;")
 
         menu = QMenu(self); menu.setCursor(Qt.CursorShape.PointingHandCursor)
         for name, inf in cat_map.items():
@@ -191,7 +242,6 @@ class KeepGoingUI(QMainWindow):
             action = QAction(name, self); action.setIcon(create_emoji_icon(inf['icon']))
             action.triggered.connect(lambda chk, c=name, d=data, cnr=container: self.change_category(d, c, cnr))
             menu.addAction(action)
-        
         menu.addSeparator()
         clear_action = QWidgetAction(self); clear_widget = ClearTagWidget()
         clear_widget.clicked.connect(lambda: (self.change_category(data, "Uncategorized", container), menu.close()))
@@ -201,12 +251,20 @@ class KeepGoingUI(QMainWindow):
     def change_category(self, data, new_cat, container):
         data['category'] = new_cat
         id_key = data.get('url') or data['title']
-        if new_cat == "Uncategorized": self.tag_memory.pop(id_key, None)
+        if new_cat == "Uncategorized": 
+            self.tag_memory.pop(id_key, None)
+            with open(self.memory_file, 'w', encoding='utf-8') as f: json.dump(self.tag_memory, f, ensure_ascii=False)
         else: self.save_memory(id_key, new_cat)
-        for i in reversed(range(container.layout().count())):
-            w = container.layout().itemAt(i).widget()
-            if isinstance(w, QPushButton) and w.objectName() == "TagButton": w.setParent(None)
-        self.create_tag_picker(data, container)
+            
+        if self.filter_checkbox.isChecked() and new_cat == "Uncategorized":
+            self.refresh_list()
+        else:
+            # --- 修正：不刪除 DurationWidget，而是切換其狀態 ---
+            for i in reversed(range(container.layout().count())):
+                w = container.layout().itemAt(i).widget()
+                if isinstance(w, QPushButton) and w.objectName() == "TagButton": w.setParent(None)
+                elif isinstance(w, DurationWidget): w.set_active(new_cat != "Uncategorized")
+            self.create_tag_picker(data, container)
 
     def start_archive(self):
         selected = []

@@ -6,25 +6,24 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QColor, QPixmap, QIcon, QPainter
 from settings_manager import ConfigManager, TAG_THEMES
 
-def create_color_icon(hex_color, size=14):
-    """根據十六進位顏色產生一個圓角方塊圖標"""
+def create_color_icon(hex_color, size=16):
+    """產生圓角顏色方塊圖標"""
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
-    
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     painter.setBrush(QColor(hex_color))
     painter.setPen(Qt.PenStyle.NoPen)
-    # 繪製帶有 4px 圓角的方塊
     painter.drawRoundedRect(0, 0, size, size, 4, 4)
     painter.end()
     return QIcon(pixmap)
 
 class CategoryEditDialog(QDialog):
-    """新增/編輯標籤的對話框 - Notion 風格精簡版"""
-    def __init__(self, parent=None):
+    """新增/編輯標籤的對話框"""
+    def __init__(self, parent=None, edit_data=None):
         super().__init__(parent)
-        self.setWindowTitle("新增分類標籤")
+        self.edit_data = edit_data
+        self.setWindowTitle("編輯分類標籤" if edit_data else "新增分類標籤")
         self.setFixedWidth(350)
         self.init_ui()
 
@@ -33,42 +32,44 @@ class CategoryEditDialog(QDialog):
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(15)
         
-        # 標題與輸入
         layout.addWidget(QLabel("分類名稱"))
         self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("輸入專案或領域名稱...")
+        self.name_input.setPlaceholderText("例如: Design, Study...")
+        # 讀取現有資料
+        if self.edit_data: self.name_input.setText(self.edit_data.get("name", ""))
         layout.addWidget(self.name_input)
         
         layout.addWidget(QLabel("Emoji 圖示"))
         self.icon_input = QLineEdit()
-        self.icon_input.setPlaceholderText("貼上一個 Emoji (如 🎨, 💻)...")
+        self.icon_input.setPlaceholderText("貼上一個 Emoji (如 🎨)...")
+        if self.edit_data: self.icon_input.setText(self.edit_data.get("icon", ""))
         layout.addWidget(self.icon_input)
         
         layout.addWidget(QLabel("標籤色調"))
         self.theme_combo = QComboBox()
-        # 加入顏色圖標
-        for theme_name, theme_data in TAG_THEMES.items():
+        index_to_set = 0
+        for i, (theme_name, theme_data) in enumerate(TAG_THEMES.items()):
             if theme_name == "Uncategorized": continue
             icon = create_color_icon(theme_data["fg"])
             self.theme_combo.addItem(icon, theme_name)
+            if self.edit_data and self.edit_data.get("theme") == theme_name:
+                index_to_set = self.theme_combo.count() - 1
+        if self.edit_data: self.theme_combo.setCurrentIndex(index_to_set)
         layout.addWidget(self.theme_combo)
         
         layout.addSpacing(15)
-        
         btns = QHBoxLayout()
-        btns.setSpacing(10)
-
+        
         cancel_btn = QPushButton("取消")
-        cancel_btn.setObjectName("SettingsButton")
+        cancel_btn.setObjectName("CancelButton") # 套用透明副按鈕樣式
         cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         cancel_btn.clicked.connect(self.reject)
-
-        ok_btn = QPushButton("確認建立")
-        ok_btn.setObjectName("ArchiveButton") 
+        
+        ok_btn = QPushButton("儲存變更" if self.edit_data else "確認建立")
+        ok_btn.setObjectName("PrimaryButton") # 套用白底主按鈕樣式
         ok_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         ok_btn.clicked.connect(self.accept)
         
-        btns.addStretch()
         btns.addWidget(cancel_btn)
         btns.addWidget(ok_btn)
         layout.addLayout(btns)
@@ -91,114 +92,93 @@ class SettingsDialog(QDialog):
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(20)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # --- 頂部標題 ---
-        header_title = QLabel("系統規則設定")
-        header_title.setObjectName("TitleLabel")
-        header_title.setStyleSheet("font-size: 20px;")
-        layout.addWidget(header_title)
-
-        # --- 分頁系統樣式化 ---
         self.tabs = QTabWidget()
-        self.tabs.setStyleSheet("""
-            QTabWidget::pane { border-top: 1px solid rgba(255, 255, 255, 0.05); background: transparent; }
-            QTabBar::tab { background: transparent; padding: 10px 20px; color: #9B9A97; }
-            QTabBar::tab:selected { color: #EBEBEA; border-bottom: 2px solid #EBEBEA; }
-        """)
+        self.tabs.setObjectName("SettingsTabs")
 
-        # 分頁 1: 標籤管理
+        # --- 分頁 1: 標籤管理 ---
         self.cat_tab = QWidget()
         cat_layout = QVBoxLayout(self.cat_tab)
-        cat_layout.setContentsMargins(0, 15, 0, 0)
+        cat_layout.setContentsMargins(20, 25, 20, 20)
+        cat_layout.setSpacing(15)
         
-        cat_layout.addWidget(QLabel("<b>專屬分類標籤</b>"))
-        cat_desc = QLabel("在此定義你想要追蹤的專案或領域")
-        cat_desc.setObjectName("SubTitleLabel")
-        cat_layout.addWidget(cat_desc)
-        
+        cat_layout.addWidget(QLabel("<b>專屬分類標籤</b><br><span style='color:gray; font-size:12px;'>雙擊標籤即可進入編輯</span>"))
         self.cat_list = QListWidget()
+        self.cat_list.setObjectName("CategoryList")
         self.cat_list.setIconSize(QSize(14, 14))
+        # 綁定雙擊編輯事件
+        self.cat_list.itemDoubleClicked.connect(self.edit_category)
         self.refresh_cat_list()
         cat_layout.addWidget(self.cat_list)
 
         cat_btn_layout = QHBoxLayout()
         add_cat_btn = QPushButton("➕ 新增標籤")
-        add_cat_btn.setObjectName("SettingsButton")
         add_cat_btn.clicked.connect(self.add_category)
-        
-        del_cat_btn = QPushButton("🗑 刪除選中")
-        del_cat_btn.setObjectName("SettingsButton")
+        del_cat_btn = QPushButton("🗑 刪除標籤")
         del_cat_btn.clicked.connect(self.delete_category)
-        
         cat_btn_layout.addWidget(add_cat_btn)
         cat_btn_layout.addWidget(del_cat_btn)
-        cat_btn_layout.addStretch()
         cat_layout.addLayout(cat_btn_layout)
 
-        # 分頁 2: 程序過濾
+        # --- 分頁 2: 過濾設定 ---
         self.blacklist_tab = QWidget()
         black_layout = QVBoxLayout(self.blacklist_tab)
-        black_layout.setContentsMargins(0, 15, 0, 0)
-        
-        black_layout.addWidget(QLabel("<b>程序黑名單</b>"))
-        black_desc = QLabel("被加入的程序名稱將不會出現在掃描清單中")
-        black_desc.setObjectName("SubTitleLabel")
-        black_layout.addWidget(black_desc)
+        black_layout.setContentsMargins(20, 25, 20, 20)
+        black_layout.setSpacing(15)
+        black_layout.addWidget(QLabel("<b>不偵測的程序 (.exe)</b>"))
         
         self.black_exe_list = QListWidget()
+        self.black_exe_list.setObjectName("Blacklist")
         self.black_exe_list.addItems(self.config.get("blacklist_exes", []))
         black_layout.addWidget(self.black_exe_list)
         
         black_btn_layout = QHBoxLayout()
-        add_exe_btn = QPushButton("➕ 新增程序")
-        add_exe_btn.setObjectName("SettingsButton")
+        add_exe_btn = QPushButton("➕ 新增 EXE")
         add_exe_btn.clicked.connect(self.add_exe)
-        
-        del_exe_btn = QPushButton("🗑 刪除選中")
-        del_exe_btn.setObjectName("SettingsButton")
+        del_exe_btn = QPushButton("🗑 移除選中")
         del_exe_btn.clicked.connect(self.delete_exe)
-        
         black_btn_layout.addWidget(add_exe_btn)
         black_btn_layout.addWidget(del_exe_btn)
-        black_btn_layout.addStretch()
         black_layout.addLayout(black_btn_layout)
         
         self.tabs.addTab(self.cat_tab, "標籤管理")
         self.tabs.addTab(self.blacklist_tab, "過濾設定")
         layout.addWidget(self.tabs)
 
-        # --- 底部功能按鈕 ---
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.HLine)
-        line.setStyleSheet("background-color: rgba(255, 255, 255, 0.05); min-height: 1px;")
-        layout.addWidget(line)
+        # 分割線
+        self.line = QFrame()
+        self.line.setObjectName("BottomSeparator")
+        self.line.setFrameShape(QFrame.Shape.HLine)
+        self.line.setFrameShadow(QFrame.Shadow.Plain)
+        layout.addWidget(self.line)
 
-        buttons = QHBoxLayout()
-        buttons.setSpacing(12)
+        # 底部按鈕區
+        bottom_area = QWidget()
+        bottom_layout = QHBoxLayout(bottom_area)
+        bottom_layout.setContentsMargins(20, 15, 20, 20)
         
         cancel_btn = QPushButton("取消")
-        cancel_btn.setObjectName("SettingsButton")
+        cancel_btn.setObjectName("CancelButton")
         cancel_btn.clicked.connect(self.reject)
         
-        save_btn = QPushButton("儲存設定")
-        save_btn.setObjectName("ArchiveButton")
+        save_btn = QPushButton("儲存所有設定")
+        save_btn.setObjectName("ArchiveButton") # 保持使用透明外框樣式
+        save_btn.setFixedWidth(140)
         save_btn.clicked.connect(self.save_and_close)
         
-        buttons.addStretch()
-        buttons.addWidget(cancel_btn)
-        buttons.addWidget(save_btn)
-        layout.addLayout(buttons)
+        bottom_layout.addStretch()
+        bottom_layout.addWidget(cancel_btn)
+        bottom_layout.addWidget(save_btn)
+        layout.addWidget(bottom_area)
 
     def refresh_cat_list(self):
-        """將色彩方塊結合標籤，確保視覺一致性"""
         self.cat_list.clear()
         for c in self.config.get("categories", []):
             name = c['name']
             icon_char = c.get('icon', '🔹')
             theme_name = c.get('theme', 'Gray')
-            
             theme_color = TAG_THEMES.get(theme_name, TAG_THEMES["Gray"])["fg"]
             
             item = QListWidgetItem(f"{icon_char}  {name}")
@@ -213,6 +193,17 @@ class SettingsDialog(QDialog):
                 self.config["categories"].append(data)
                 self.refresh_cat_list()
 
+    def edit_category(self, item):
+        """核心新功能：透過雙擊列表項目，自動帶入資料進行編輯"""
+        row = self.cat_list.row(item)
+        cat_data = self.config["categories"][row]
+        dlg = CategoryEditDialog(self, edit_data=cat_data)
+        if dlg.exec():
+            data = dlg.get_data()
+            if data["name"]:
+                self.config["categories"][row] = data
+                self.refresh_cat_list()
+
     def delete_category(self):
         row = self.cat_list.currentRow()
         if row >= 0:
@@ -220,14 +211,12 @@ class SettingsDialog(QDialog):
             self.refresh_cat_list()
 
     def add_exe(self):
-        exe, ok = QInputDialog.getText(self, "新增程序", "請輸入程序名稱 (例如: obsidian.exe):")
-        if ok and exe:
-            self.black_exe_list.addItem(exe)
+        exe, ok = QInputDialog.getText(self, "新增黑名單", "輸入進程名 (例: explorer.exe):")
+        if ok and exe: self.black_exe_list.addItem(exe)
 
     def delete_exe(self):
         item = self.black_exe_list.currentItem()
-        if item:
-            self.black_exe_list.takeItem(self.black_exe_list.row(item))
+        if item: self.black_exe_list.takeItem(self.black_exe_list.row(item))
 
     def save_and_close(self):
         self.config["blacklist_exes"] = [self.black_exe_list.item(i).text() for i in range(self.black_exe_list.count())]
