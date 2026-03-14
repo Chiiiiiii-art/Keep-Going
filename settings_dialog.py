@@ -1,7 +1,8 @@
 import sys
+from pathlib import Path
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, 
                              QWidget, QLabel, QLineEdit, QPushButton, QListWidget, 
-                             QInputDialog, QComboBox, QFrame, QListWidgetItem)
+                             QInputDialog, QComboBox, QFrame, QListWidgetItem, QMessageBox)
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QColor, QPixmap, QIcon, QPainter
 from settings_manager import ConfigManager, TAG_THEMES
@@ -35,7 +36,6 @@ class CategoryEditDialog(QDialog):
         layout.addWidget(QLabel("分類名稱"))
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("例如: Design, Study...")
-        # 讀取現有資料
         if self.edit_data: self.name_input.setText(self.edit_data.get("name", ""))
         layout.addWidget(self.name_input)
         
@@ -61,12 +61,12 @@ class CategoryEditDialog(QDialog):
         btns = QHBoxLayout()
         
         cancel_btn = QPushButton("取消")
-        cancel_btn.setObjectName("CancelButton") # 套用透明副按鈕樣式
+        cancel_btn.setObjectName("CancelButton")
         cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         cancel_btn.clicked.connect(self.reject)
         
         ok_btn = QPushButton("儲存變更" if self.edit_data else "確認建立")
-        ok_btn.setObjectName("PrimaryButton") # 套用白底主按鈕樣式
+        ok_btn.setObjectName("PrimaryButton")
         ok_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         ok_btn.clicked.connect(self.accept)
         
@@ -108,7 +108,6 @@ class SettingsDialog(QDialog):
         self.cat_list = QListWidget()
         self.cat_list.setObjectName("CategoryList")
         self.cat_list.setIconSize(QSize(14, 14))
-        # 綁定雙擊編輯事件
         self.cat_list.itemDoubleClicked.connect(self.edit_category)
         self.refresh_cat_list()
         cat_layout.addWidget(self.cat_list)
@@ -143,18 +142,33 @@ class SettingsDialog(QDialog):
         black_btn_layout.addWidget(del_exe_btn)
         black_layout.addLayout(black_btn_layout)
         
+        # --- 分頁 3: 其他設定 ---
+        self.other_tab = QWidget()
+        other_layout = QVBoxLayout(self.other_tab)
+        other_layout.setContentsMargins(20, 25, 20, 20)
+        other_layout.setSpacing(15)
+        
+        other_layout.addWidget(QLabel("<b>危險操作與系統管理</b><br><span style='color:gray; font-size:12px;'>此區域的設定將對系統資料產生不可逆的影響</span>"))
+        
+        reset_btn = QPushButton("⚠️ 還原原廠設定")
+        reset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        reset_btn.setObjectName("DangerButton") 
+        reset_btn.clicked.connect(self.factory_reset)
+        
+        other_layout.addWidget(reset_btn)
+        other_layout.addStretch()
+
         self.tabs.addTab(self.cat_tab, "標籤管理")
         self.tabs.addTab(self.blacklist_tab, "過濾設定")
+        self.tabs.addTab(self.other_tab, "其他設定")
         layout.addWidget(self.tabs)
 
-        # 分割線
         self.line = QFrame()
         self.line.setObjectName("BottomSeparator")
         self.line.setFrameShape(QFrame.Shape.HLine)
         self.line.setFrameShadow(QFrame.Shadow.Plain)
         layout.addWidget(self.line)
 
-        # 底部按鈕區
         bottom_area = QWidget()
         bottom_layout = QHBoxLayout(bottom_area)
         bottom_layout.setContentsMargins(20, 15, 20, 20)
@@ -164,7 +178,7 @@ class SettingsDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         
         save_btn = QPushButton("儲存所有設定")
-        save_btn.setObjectName("ArchiveButton") # 保持使用透明外框樣式
+        save_btn.setObjectName("ArchiveButton")
         save_btn.setFixedWidth(140)
         save_btn.clicked.connect(self.save_and_close)
         
@@ -194,7 +208,6 @@ class SettingsDialog(QDialog):
                 self.refresh_cat_list()
 
     def edit_category(self, item):
-        """核心新功能：透過雙擊列表項目，自動帶入資料進行編輯"""
         row = self.cat_list.row(item)
         cat_data = self.config["categories"][row]
         dlg = CategoryEditDialog(self, edit_data=cat_data)
@@ -222,3 +235,69 @@ class SettingsDialog(QDialog):
         self.config["blacklist_exes"] = [self.black_exe_list.item(i).text() for i in range(self.black_exe_list.count())]
         self.config_mgr.save_config(self.config)
         self.accept()
+
+    def factory_reset(self):
+        # --- 1. 警告視窗 (手寫) ---
+        warn_dlg = QDialog(self)
+        warn_dlg.setWindowTitle("確定要還原原廠設定嗎？")
+        warn_dlg.setFixedSize(400, 180)
+        
+        warn_layout = QVBoxLayout(warn_dlg)
+        warn_layout.setContentsMargins(30, 30, 30, 25)
+        
+        warn_content = QLabel("<b>還原原廠設定</b><br><br>這將會清除所有視窗與分頁的標籤記憶，以及自訂的系統分類和黑名單設定，此操作無法復原！")
+        warn_content.setWordWrap(True)
+        warn_content.setStyleSheet("color: #EBEBEA; font-size: 14px;")
+        warn_layout.addWidget(warn_content)
+        
+        btn_area = QHBoxLayout()
+        btn_area.addStretch()
+        
+        btn_cancel = QPushButton("取消")
+        btn_cancel.setStyleSheet("QPushButton { color: #9B9A97 !important; background: transparent !important; border: none !important; padding: 8px 15px; } QPushButton:hover { background-color: rgba(255, 255, 255, 0.05) !important; color: #EBEBEA !important; border-radius: 6px; }")
+        
+        btn_restore = QPushButton("還原")
+        btn_restore.setStyleSheet("QPushButton { color: #FF4D4D !important; background: transparent !important; border: none !important; padding: 8px 15px; font-weight: bold; } QPushButton:hover { background-color: rgba(255, 77, 77, 0.1) !important; border-radius: 6px; }")
+        
+        btn_cancel.clicked.connect(warn_dlg.reject)
+        btn_restore.clicked.connect(warn_dlg.accept)
+        btn_area.addWidget(btn_cancel)
+        btn_area.addWidget(btn_restore)
+        warn_layout.addLayout(btn_area)
+        
+        if warn_dlg.exec():
+            # 執行還原
+            memory_files = ["WorkSnap_Data/tag_memory.json", "WorkSnap_Data/checkbox_memory.json"]
+            for mf in memory_files:
+                path = Path(mf)
+                if path.exists():
+                    try: path.unlink()
+                    except: pass
+            
+            self.config = self.config_mgr.default_config
+            self.config_mgr.save_config(self.config)
+            
+            # --- 2. 成功視窗 (手寫，解決那個藍色半圓問題) ---
+            done_dlg = QDialog(self)
+            done_dlg.setWindowTitle("完成")
+            done_dlg.setFixedSize(350, 150)
+            
+            done_layout = QVBoxLayout(done_dlg)
+            done_layout.setContentsMargins(30, 30, 30, 25)
+            
+            done_content = QLabel("已還原原廠設定。<br>請重新掃描或重啟應用程式以套用變更。")
+            done_content.setWordWrap(True)
+            done_content.setStyleSheet("color: #EBEBEA; font-size: 14px;")
+            done_layout.addWidget(done_content)
+            
+            ok_area = QHBoxLayout()
+            ok_area.addStretch()
+            btn_ok = QPushButton("確 定")
+            # 這裡把按鈕加上一點邊框，比較好點擊
+            btn_ok.setStyleSheet("QPushButton { color: #EBEBEA !important; background: transparent !important; border: 1px solid #3F3F3F !important; border-radius: 6px !important; padding: 6px 20px; font-weight: bold; } QPushButton:hover { background-color: rgba(255, 255, 255, 0.05) !important; }")
+            btn_ok.clicked.connect(done_dlg.accept)
+            ok_area.addWidget(btn_ok)
+            done_layout.addLayout(ok_area)
+            done_dlg.exec()
+            
+            self.accept()

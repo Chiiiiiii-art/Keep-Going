@@ -1,17 +1,21 @@
 {
-    "rules": {
-        "Art": [
-            "Photoshop.exe"
-        ],
-        "Dev": [
-            "Code.exe",
-            "devenv.exe",
-            "WindowsTerminal.exe"
-        ],
-        "Writing": [
-            "Notion.exe"
-        ]
-    },
+    "categories": [
+        {
+            "name": "Art",
+            "icon": "🎨",
+            "theme": "Red"
+        },
+        {
+            "name": "Dev",
+            "icon": "💻",
+            "theme": "Blue"
+        },
+        {
+            "name": "Writing",
+            "icon": "📝",
+            "theme": "Green"
+        }
+    ],
     "blacklist_exes": [
         "explorer.exe",
         "SystemSettings.exe",
@@ -23,19 +27,8 @@
     ],
     "blacklist_titles": [
         "Program Manager",
+        "Keep-Going",
         "設定",
         "Windows 輸入體驗"
-    ],
-    "categories": [
-        {
-            "name": "Art",
-            "icon": "🎨",
-            "theme": "Red"
-        },
-        {
-            "name": "Writing",
-            "icon": "📝",
-            "theme": "Green"
-        }
     ]
 }
