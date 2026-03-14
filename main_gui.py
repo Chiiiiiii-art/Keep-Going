@@ -44,6 +44,26 @@ class ArchiveWorker(QThread):
             self.progress.emit(int((i / len(self.selected_data)) * 100), item['title'])
             self.controller.run_archive_flow([item])
         self.finished.emit("完成")
+class DurationWidget(QLabel):
+    """自定義工時選擇組件：支援滑鼠滾輪以 0.5h 為單位增減"""
+    def __init__(self, parent=None):
+        super().__init__("0.0h", parent)
+        self.hours = 0.0
+        self.setFixedWidth(60)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setObjectName("DurationLabel")
+        self.setCursor(Qt.CursorShape.SizeVerCursor) # 提示使用者可以上下捲動
+
+    def wheelEvent(self, event):
+        # 取得滾輪方向 (delta > 0 為向上捲動)
+        delta = event.angleDelta().y()
+        if delta > 0:
+            self.hours += 0.5
+        elif delta < 0 and self.hours >= 0.5:
+            self.hours -= 0.5
+        
+        self.setText(f"{self.hours:.1f}h")
+        event.accept()
 
 class KeepGoingUI(QMainWindow):
     def __init__(self):
@@ -205,8 +225,14 @@ class KeepGoingUI(QMainWindow):
         layout.setContentsMargins(5, 0, 5, 0)
         layout.setSpacing(15)
 
-        self.create_tag_picker(data, container)
+        # 1. 標籤按鈕
+        tag_btn = self.create_tag_picker(data, container)
         
+        # 2. 新增：工時選擇器 (0.5h 單位)
+        duration_picker = DurationWidget()
+        layout.addWidget(duration_picker)
+        
+        # 3. 備註框
         note_edit = HoverLineEdit()
         note_edit.setPlaceholderText("在此輸入進度備註...")
         note_edit.setFrame(False)
@@ -276,7 +302,9 @@ class KeepGoingUI(QMainWindow):
                         w = container.layout().itemAt(i).widget()
                         if isinstance(w, QLineEdit):
                             data['note'] = w.text()
-                            break
+                        # 新增：收集工時資訊
+                        elif isinstance(w, DurationWidget):
+                            data['duration'] = w.hours
                 selected_data.append(data)
             it += 1
 

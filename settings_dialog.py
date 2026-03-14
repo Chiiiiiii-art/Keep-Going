@@ -1,6 +1,7 @@
 import sys
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QWidget, 
-                             QLabel, QPushButton, QListWidget, QInputDialog)
+                             QLabel, QPushButton, QListWidget, QInputDialog, QFrame)
+from PyQt6.QtCore import Qt
 from settings_manager import ConfigManager
 
 class SettingsDialog(QDialog):
@@ -14,33 +15,59 @@ class SettingsDialog(QDialog):
 
     def init_ui(self):
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(15)
 
-        layout.addWidget(QLabel("<b>進程黑名單</b><br><span style='color:gray;'>被加入的 .exe 將不會出現在掃描清單中</span>"))
+        # --- 標題區域 ---
+        header_title = QLabel("程序黑名單")
+        header_title.setStyleSheet("font-size: 18px; font-weight: bold;") # 局部微調標題大小
         
+        header_desc = QLabel("被加入的 .exe 將不會出現在掃描清單中")
+        header_desc.setObjectName("SubTitleLabel") # 套用 QSS 的灰色字
+        
+        layout.addWidget(header_title)
+        layout.addWidget(header_desc)
+        
+        # --- 列表區域 ---
         self.black_exe_list = QListWidget()
         self.black_exe_list.addItems(self.config.get("blacklist_exes", []))
-        self.black_exe_list.setStyleSheet("background: transparent; border: 1px solid #333; border-radius: 5px;")
+        # 移除硬編碼樣式，讓 QSS 透過 QListWidget 選擇器處理
         layout.addWidget(self.black_exe_list)
         
+        # --- 控制按鈕 ---
         btn_layout = QHBoxLayout()
-        add_btn = QPushButton("➕ 新增進程")
-        add_btn.clicked.connect(self.add_exe)
+        add_btn = QPushButton("➕ 新增程序")
+        add_btn.setObjectName("SettingsButton") # 套用次要按鈕樣式
+        add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        
         del_btn = QPushButton("🗑 刪除選中")
-        del_btn.clicked.connect(self.delete_exe)
+        del_btn.setObjectName("SettingsButton") # 套用次要按鈕樣式
+        del_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        
         btn_layout.addWidget(add_btn)
         btn_layout.addWidget(del_btn)
+        btn_layout.addStretch()
         layout.addLayout(btn_layout)
 
-        layout.addSpacing(20)
+        layout.addSpacing(10)
+        
+        # 分隔線 (Notion 常見的細線)
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setStyleSheet("background-color: rgba(255, 255, 255, 0.05); border: none; min-height: 1px;")
+        layout.addWidget(line)
 
-        # 底部按鈕
+        # --- 底部功能按鈕 ---
         buttons = QHBoxLayout()
-        save_btn = QPushButton("儲存設定")
-        save_btn.setStyleSheet("background-color: #EBEBEA; color: #191919; font-weight: bold;")
-        save_btn.clicked.connect(self.save_and_close)
+        buttons.setSpacing(12)
         
         cancel_btn = QPushButton("取消")
+        cancel_btn.setObjectName("SettingsButton") # 取消按鈕也採用次要樣式
         cancel_btn.clicked.connect(self.reject)
+        
+        save_btn = QPushButton("儲存設定")
+        save_btn.setObjectName("ArchiveButton") # 套用主按鈕樣式（細邊框版本）
+        save_btn.clicked.connect(self.save_and_close)
         
         buttons.addStretch()
         buttons.addWidget(cancel_btn)
@@ -48,7 +75,7 @@ class SettingsDialog(QDialog):
         layout.addLayout(buttons)
 
     def add_exe(self):
-        exe, ok = QInputDialog.getText(self, "新增黑名單", "請輸入進程名稱 (例如: obsidian.exe):")
+        exe, ok = QInputDialog.getText(self, "新增黑名單", "請輸入程序名稱 (例如: obsidian.exe):") # 程序改程序
         if ok and exe:
             self.black_exe_list.addItem(exe)
 
@@ -58,7 +85,6 @@ class SettingsDialog(QDialog):
             self.black_exe_list.takeItem(self.black_exe_list.row(item))
 
     def save_and_close(self):
-        # 收集列表中的項目更新到 config
         new_list = [self.black_exe_list.item(i).text() for i in range(self.black_exe_list.count())]
         self.config["blacklist_exes"] = new_list
         self.config_mgr.save_config(self.config)

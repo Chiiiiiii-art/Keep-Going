@@ -20,6 +20,7 @@ class ArchiveController:
             tag = item.get('category', 'Uncategorized')
             title = item.get('title', 'Untitled')
             note = item.get('note', '')
+            duration = item.get('duration', 0.0)
             
             # 1. 產生儲存路徑
             # 取得簡短關鍵字作為檔名一部分
@@ -71,6 +72,20 @@ class ArchiveController:
                 print(f"✅ 已完成: {title}")
             else:
                 print(f"❌ 失敗: 無法聚焦 {title}")
+                
+            if success:
+                # 準備寫入 JSON 的資料結構
+                record = {
+                    "tag": tag,
+                    "window_title": title,
+                    "image_path": str(save_path.relative_to(self.dm.base_dir)),
+                    "note": note,
+                    "duration": duration # 新增工時欄位儲存
+                }
+                if item.get('url'):
+                    record["url"] = item['url']
+                
+                archive_results.append(record)
 
         # 5. 寫入月份紀錄檔
         if archive_results:
