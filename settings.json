@@ -25,5 +25,17 @@
         "Program Manager",
         "設定",
         "Windows 輸入體驗"
+    ],
+    "categories": [
+        {
+            "name": "Art",
+            "icon": "🎨",
+            "theme": "Red"
+        },
+        {
+            "name": "Writing",
+            "icon": "📝",
+            "theme": "Green"
+        }
     ]
 }

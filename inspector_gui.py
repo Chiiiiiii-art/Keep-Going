@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QLabel, QSlider, QFrame, QComboBox)
 from PyQt6.QtCore import Qt, pyqtSignal, QVariantAnimation, QPropertyAnimation, QEasingCurve, QTimer
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QGuiApplication
+from settings_manager import ConfigManager
 
 # --- 核心修正 1：啟動時強制開啟 Windows DPI 感知 ---
 # 這能解決在雙螢幕或 4K 螢幕上，座標計算出錯導致視窗縮到左上角看不見的問題
@@ -98,6 +99,8 @@ class TimelineViewer(QWidget):
 class InspectorUI(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.config_mgr = ConfigManager()
+        self.cat_map = self.config_mgr.get_category_map()
         self.setWindowTitle("Keep-Going | 歷史進度檢閱")
         self.resize(1250, 850)
         
@@ -328,7 +331,12 @@ class InspectorUI(QMainWindow):
             if project_groups:
                 if not tag_node:
                     tag_node = QTreeWidgetItem(self.tree)
-                    tag_node.setText(0, f"📁 {tag_dir.name}")
+                    
+                    # 核心修正：動態套用自訂的圖示
+                    cat_info = self.cat_map.get(tag_dir.name, {"icon": "📁"})
+                    icon = cat_info["icon"] or "📁" # 如果圖示為空則使用預設資料夾
+                    
+                    tag_node.setText(0, f"{icon} {tag_dir.name}")
                     tag_node.setExpanded(True)
                 for title, paths in project_groups.items():
                     proj_node = QTreeWidgetItem(tag_node)

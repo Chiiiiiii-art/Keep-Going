@@ -1,4 +1,4 @@
-/* style.qss - Notion 極簡視覺修正終極版 (按鈕尺寸對齊修正) */
+/* style.qss - Keep-Going Notion 視覺終極隔離版 */
 
 /* --- 1. 全域基礎設定 --- */
 QWidget {
@@ -11,65 +11,13 @@ QWidget {
 QLabel#TitleLabel { font-size: 28px; font-weight: bold; }
 QLabel#SubTitleLabel { color: #9B9A97; }
 
-/* --- 2. 樹狀清單 (下班存檔 UI) --- */
-QTreeWidget {
-    outline: none;
-    background: transparent;
-    border: none;
-}
-QTreeWidget::item {
-    height: 48px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-}
+/* --- 2. 樹狀清單 --- */
+QTreeWidget { background: transparent; border: none; outline: none; }
+QTreeWidget::item { height: 48px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); }
 QTreeWidget::item:hover { background-color: rgba(255, 255, 255, 0.04); }
-QTreeWidget::item:selected { background-color: transparent; color: #EBEBEA; }
-QTreeView::branch:selected, QTreeView::branch:hover { background-color: transparent; }
+QTreeWidget::item:selected { background-color: transparent; }
 
-/* --- 3. 全域 QCheckBox (Notion 風格) --- */
-QCheckBox { spacing: 8px; color: #9B9A97; }
-QCheckBox::indicator {
-    width: 18px; height: 18px;
-    border-radius: 4px;
-    border: 1.5px solid #444444;
-    background: transparent;
-}
-QCheckBox::indicator:checked {
-    background-color: #EBEBEA;
-    border: 1.5px solid #EBEBEA;
-    image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23191919" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>');
-}
-
-/* --- 4. 分類標籤按鈕 (TagButton) --- */
-QPushButton#TagButton {
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: bold;
-    border: none;
-    padding: 2px 5px;
-    min-height: 22px;
-    max-height: 24px;
-}
-QPushButton#TagButton:hover { background-color: rgba(255, 255, 255, 0.1); }
-QPushButton::menu-indicator { image: none; } 
-
-/* --- 5. 持續時間標籤 (DurationWidget) --- */
-QLabel#DurationLabel {
-    background-color: #262626;
-    color: #9B9A97;
-    border: 1px solid #333333;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: bold;
-    padding: 2px 0px;
-    margin: 4px 0px;
-}
-QLabel#DurationLabel:hover {
-    color: #EBEBEA;
-    border: 1px solid #444444;
-    background-color: #2C2C2C;
-}
-
-/* --- 6. 啟動器導航按鈕 (Launcher) --- */
+/* --- 3. 啟動器導航按鈕 (隔離關鍵) --- */
 QPushButton#NavButton {
     background-color: transparent;
     border: none;
@@ -78,88 +26,54 @@ QPushButton#NavButton {
     padding: 0 15px;
     text-align: left;
 }
-QPushButton#NavButton:hover { background-color: rgba(255, 255, 255, 0.05); }
-QPushButton#NavButton QLabel { background-color: transparent; border: none; }
-QLabel#IconLabel { font-size: 22px; }
-QLabel#ButtonText { font-size: 16px; color: #EBEBEA; font-weight: 500; }
-
-/* -------------------------------------------
-    7. 底部按鈕對齊 (Archive & Settings UI)
-------------------------------------------- */
-
-/* 強制統一所有按鈕的基礎尺寸，解決「不等大」問題 */
-QPushButton#SettingsButton, 
-QPushButton#RefreshButton, 
-QPushButton#ArchiveButton {
-    min-height: 40px;      /* 固定高度 */
-    max-height: 40px;
-    min-width: 100px;     /* 固定最小寬度，確保文案長度不同時依然對齊 */
-    padding: 0 20px;      /* 統一內距 */
-    font-size: 14px;
-    border-radius: 6px;
+QPushButton#NavButton:hover {
+    background-color: rgba(255, 255, 255, 0.05);
 }
+QPushButton#NavButton QLabel { background: transparent; }
 
-/* [取消類型按鈕] 無邊框風格 */
+/* --- 4. 下拉選單 (QMenu) --- */
+QMenu {
+    background-color: #252525;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 5px;
+}
+QMenu::item {
+    padding: 8px 32px 8px 10px;
+    border-radius: 4px;
+    color: white; /* 分類項目文字一律白色 */
+}
+QMenu::item:selected {
+    background-color: rgba(255, 255, 255, 0.08); /* 懸停高亮 */
+}
+QMenu::separator { height: 1px; background: #333333; margin: 6px 8px; }
+
+/* --- 5. 功能按鈕 --- */
 QPushButton#SettingsButton, QPushButton#RefreshButton {
     background-color: transparent;
     color: #9B9A97;
-    border: 1px solid transparent; /* 預留透明邊框防止尺寸抖動 */
+    border: none;
+    min-height: 40px;
 }
 QPushButton#SettingsButton:hover, QPushButton#RefreshButton:hover {
     background-color: rgba(255, 255, 255, 0.05);
     color: #EBEBEA;
 }
 
-/* [儲存類型按鈕] 帶邊框風格 */
 QPushButton#ArchiveButton {
     background-color: transparent;
     color: #EBEBEA;
     font-weight: bold;
-    border: 1px solid #3F3F3F; /* 實體邊框 */
+    border-radius: 6px;
+    border: 1px solid #3F3F3F;
+    min-height: 45px;
+    padding: 0 25px;
 }
 QPushButton#ArchiveButton:hover {
-    background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid #666666;
-}
-QPushButton#ArchiveButton:pressed {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
-/* --- 8. 程序黑名單列表 (QListWidget) --- */
-QListWidget {
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    background-color: rgba(255, 255, 255, 0.02);
-    padding: 8px;
-    outline: none;
-}
-QListWidget::item {
-    padding: 10px 15px;
-    border-radius: 6px;
-    color: #EBEBEA;
-    margin-bottom: 4px;
-}
-QListWidget::item:hover { background-color: rgba(255, 255, 255, 0.04); }
-QListWidget::item:selected {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #EBEBEA;
-}
-
-/* --- 9. 精簡版捲軸樣式 --- */
-QScrollBar:vertical {
-    border: none;
-    background: transparent;
-    width: 6px;
-    margin: 0px 2px 0px 0px;
-}
-QScrollBar::handle:vertical {
-    background: #373737;
-    min-height: 20px;
-    border-radius: 3px;
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
-
-/* --- 10. 其他 --- */
-QFrame#StatusFrame { border-top: 1px solid rgba(255, 255, 255, 0.1); }
-QLineEdit { background: transparent; color: #9B9A97; border: none; }
-QLineEdit:focus { color: #EBEBEA; }
+/* --- 6. 輸入框 --- */
+QLineEdit#NoteEdit { background: transparent; color: #9B9A97; border: none; font-size: 13px; }
+QLineEdit#NoteEdit:focus { color: #EBEBEA; }

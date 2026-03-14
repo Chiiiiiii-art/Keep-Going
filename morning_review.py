@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QPushButton, QFrame)
 from PyQt6.QtGui import QPixmap, QColor, QPainter, QShortcut, QKeySequence, QGuiApplication
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from settings_manager import ConfigManager
 
 DEBUG_MODE = False
 
@@ -59,6 +60,8 @@ class InteractiveImageLabel(QLabel):
 class MorningReview(QWidget):
     def __init__(self):
         super().__init__()
+        self.config_mgr = ConfigManager() 
+        self.cat_map = self.config_mgr.get_category_map() 
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.resize(1000, 800) 
@@ -247,20 +250,19 @@ class MorningReview(QWidget):
             if DEBUG_MODE: print(f"[DEBUG] 讀取失敗: {e}")
 
     def update_tag_badge(self, tag):
-        colors = {
-            "Art": "background-color: #4D2D2D; color: #FFA3A3;",
-            "Dev": "background-color: #2D3D4D; color: #A3D1FF;",
-            "Writing": "background-color: #2D4D3D; color: #A3FFD1;",
-            "Uncategorized": "background-color: transparent; color: #9B9A97; border: 1px dashed #333333;"
-        }
-        icons = {"Art": "🎨 ", "Dev": "💻 ", "Writing": "📝 ", "Uncategorized": ""}
+        """將動態標籤轉換為帶有顏色的徽章"""
+        # 取出配置，若無則使用未分類樣式
+        cat_info = self.cat_map.get(tag, self.cat_map["Uncategorized"])
+        icon = cat_info["icon"]
+        style = cat_info["style"]
         
         display_name = "(無標籤)" if tag == "Uncategorized" else tag
-        self.tag_badge.setText(f"{icons.get(tag, '')}{display_name}")
+        self.tag_badge.setText(f"{icon} {display_name}".strip())
         
         base_style = "border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: bold;"
-        self.tag_badge.setStyleSheet(f"QLabel {{ {base_style} {colors.get(tag, colors['Uncategorized'])} }}")
-
+        css = f"background-color: {style['bg']}; color: {style['fg']}; border: {style['border']};"
+        self.tag_badge.setStyleSheet(f"QLabel {{ {base_style} {css} }}")
+        
     def display_current_item(self):
         if not self.progress_items: return
         

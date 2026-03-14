@@ -17,17 +17,14 @@ class WindowScanner:
     def get_process_name(self, hwnd):
         try:
             _, pid = win32process.GetWindowThreadProcessId(hwnd)
-            proc = psutil.Process(pid)
-            return proc.name()
-        except Exception:
-            return None
+            return psutil.Process(pid).name()
+        except Exception: return None
 
     def is_real_window(self, hwnd):
         if not win32gui.IsWindowVisible(hwnd): return False
         title = win32gui.GetWindowText(hwnd)
         if not title: return False
-        ex_style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
-        if ex_style & win32con.WS_EX_TOOLWINDOW: return False
+        if win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) & win32con.WS_EX_TOOLWINDOW: return False
         return True
 
     def scan_active_windows(self):
@@ -36,7 +33,6 @@ class WindowScanner:
 
         def callback(hwnd, extra):
             if not self.is_real_window(hwnd): return
-            
             title = win32gui.GetWindowText(hwnd)
             exe_name = self.get_process_name(hwnd)
 
@@ -44,16 +40,13 @@ class WindowScanner:
             if any(bt in title for bt in self.blacklist_titles): return
             if exe_name and exe_name.lower() in [e.lower() for e in self.blacklist_exes]: return
 
-            # 修正：所有項目預設為未分類，全權交由 memory 接管
+            # 核心修正：全部預設為 Uncategorized，依賴使用者自訂分配與記憶
             rect = win32gui.GetWindowRect(hwnd)
             w, h = rect[2] - rect[0], rect[3] - rect[1]
 
             active_windows.append({
-                "title": title,
-                "exe": exe_name or "Unknown",
-                "category": "Uncategorized", 
-                "hwnd": hwnd,
-                "rect": (rect[0], rect[1], w, h)
+                "title": title, "exe": exe_name or "Unknown", "category": "Uncategorized",
+                "hwnd": hwnd, "rect": (rect[0], rect[1], w, h)
             })
 
         win32gui.EnumWindows(callback, None)
