@@ -23,9 +23,16 @@ class ConfigManager:
             "blacklist_exes": [
                 "explorer.exe", "SystemSettings.exe", "NVIDIA Overlay.exe", 
                 "TextInputHost.exe", "ApplicationFrameHost.exe", "ShellExperienceHost.exe",
-                "Taskmgr.exe"
+                "Taskmgr.exe",
+                "python.exe", "pythonw.exe" # 新增：直接過濾 python 執行程序，這能更有效過濾掉 App 自己
             ],
-            "blacklist_titles": ["Program Manager", "Keep-Going", "設定", "Windows 輸入體驗"]
+            "blacklist_titles": [
+                "Program Manager", 
+                "Keep-Going | 下班進度紀錄", # 修改：將原本的 "Keep-Going" 改成完整的視窗標題
+                "Keep-Going 控制中心",      # 新增：過濾控制中心
+                "設定", 
+                "Windows 輸入體驗"
+            ]
         }
         self.config = self.load_config()
 

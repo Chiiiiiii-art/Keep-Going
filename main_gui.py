@@ -299,7 +299,20 @@ class KeepGoingUI(QMainWindow):
         if SettingsDialog(self).exec(): self.engine.scanner.update_settings(); self.refresh_list()
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv); app.setStyle("Fusion")
-    qss = Path("style.qss")
-    if qss.exists(): app.setStyleSheet(qss.read_text(encoding="utf-8"))
-    w = KeepGoingUI(); w.show(); sys.exit(app.exec())
+    app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    
+    # --- 核心修正：自動定位 style.qss 的絕對路徑 ---
+    # 取得 main_gui.py 所在的資料夾路徑
+    base_path = Path(__file__).resolve().parent
+    qss_path = base_path / "style.qss"
+    
+    if qss_path.exists():
+        app.setStyleSheet(qss_path.read_text(encoding="utf-8"))
+    else:
+        # 如果還是找不到，會在終端機提示你它去哪裡找了
+        print(f"警告：找不到樣式檔 {qss_path}")
+        
+    w = KeepGoingUI()
+    w.show()
+    sys.exit(app.exec())

@@ -102,11 +102,31 @@ class KeepGoingLauncher(QMainWindow):
     def open_review(self): self.review_win = MorningReview(); self.review_win.show()
     def open_settings(self): self.settings_win = SettingsDialog(self); self.settings_win.exec()
 
+# launcher.py 的最末端
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    
+    # 強制設定 Fusion 風格，確保跨平台外觀一致
     app.setStyle("Fusion")
-    qss_path = Path("style.qss")
-    if qss_path.exists(): app.setStyleSheet(qss_path.read_text(encoding="utf-8"))
+
+    # --- 核心修正：讓 Launcher 也能找到樣式檔 ---
+    # 取得 launcher.py 所在的資料夾路徑
+    base_path = Path(__file__).resolve().parent
+    qss_path = base_path / "style.qss"
+
+    if qss_path.exists():
+        try:
+            # 讀取並套用全域樣式
+            app.setStyleSheet(qss_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"載入 QSS 失敗: {e}")
+    else:
+        # 如果找不到，這裡會印出路徑方便你檢查
+        print(f"警告：Launcher 找不到樣式檔，嘗試路徑為: {qss_path}")
+
+    # 啟動控制中心
     launcher = KeepGoingLauncher()
     launcher.show()
+    
     sys.exit(app.exec())

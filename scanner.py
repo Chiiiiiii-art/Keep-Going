@@ -32,22 +32,48 @@ class WindowScanner:
         self.update_settings()
 
         def callback(hwnd, extra):
-            if not self.is_real_window(hwnd): return
+            if not self.is_real_window(hwnd): 
+                return
+            
             title = win32gui.GetWindowText(hwnd)
+            # 取得執行檔名稱
             exe_name = self.get_process_name(hwnd)
 
-            if title == "Keep-Going | 下班進度紀錄": return
-            if any(bt in title for bt in self.blacklist_titles): return
-            if exe_name and exe_name.lower() in [e.lower() for e in self.blacklist_exes]: return
+            # --- 修正核心：權限不足處理 ---
+            # 如果拿不到 exe_name，代表該視窗權限比你的 App 高（通常是管理員開啟的 VS Code）
+            if not exe_name:
+                # 檢查標題，如果標題包含 "Visual Studio Code"，我們就手動標記它
+                if "Visual Studio Code" in title:
+                    exe_display = "Code.exe (Admin)"
+                else:
+                    exe_display = "Administrator Process"
+            else:
+                exe_display = exe_name
 
-            # 核心修正：全部預設為 Uncategorized，依賴使用者自訂分配與記憶
-            rect = win32gui.GetWindowRect(hwnd)
-            w, h = rect[2] - rect[0], rect[3] - rect[1]
+            # 1. 排除 App 自身的特定標題
+            if title in ["Keep-Going | 下班進度紀錄", "Keep-Going 控制中心"]:
+                return
+
+            # 2. 標題黑名單過濾 (精確匹配)
+            if any(bt == title for bt in self.blacklist_titles):
+                return
+
+            # 3. 執行檔黑名單過濾
+            if exe_name and exe_name.lower() in [e.lower() for e in self.blacklist_exes]:
+                return
+
+            try:
+                rect = win32gui.GetWindowRect(hwnd)
+                w, h = rect[2] - rect[0], rect[3] - rect[1]
+            except:
+                return
 
             active_windows.append({
-                "title": title, "exe": exe_name or "Unknown", 
-                "category": None, # 改為 None
-                "hwnd": hwnd, "rect": (rect[0], rect[1], w, h)
+                "title": title, 
+                "exe": exe_display, # 使用我們處理過的名稱
+                "category": None, 
+                "hwnd": hwnd, 
+                "rect": (rect[0], rect[1], w, h)
             })
 
         win32gui.EnumWindows(callback, None)
