@@ -1,21 +1,5 @@
 {
-    "categories": [
-        {
-            "name": "Art",
-            "icon": "🎨",
-            "theme": "Red"
-        },
-        {
-            "name": "Dev",
-            "icon": "💻",
-            "theme": "Blue"
-        },
-        {
-            "name": "Writing",
-            "icon": "📝",
-            "theme": "Green"
-        }
-    ],
+    "categories": [],
     "blacklist_exes": [
         "explorer.exe",
         "SystemSettings.exe",

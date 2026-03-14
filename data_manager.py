@@ -7,13 +7,10 @@ from settings_manager import ConfigManager
 class DataManager:
     def __init__(self, base_dir="WorkSnap_Data"):
         self.base_dir = Path(base_dir)
-        # 動態載入使用者自訂的分類
         config_mgr = ConfigManager()
         config = config_mgr.load_config()
         self.categories = [c["name"] for c in config.get("categories", [])]
-        if "Uncategorized" not in self.categories:
-            self.categories.append("Uncategorized")
-            
+        # 移除 Uncategorized 檢查邏輯
         self.logs_dir = self.base_dir / "Logs"
         self._init_directories()
 

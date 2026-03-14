@@ -1,3 +1,4 @@
+# settings_manager.py
 import json
 from pathlib import Path
 
@@ -16,13 +17,9 @@ TAG_THEMES = {
 class ConfigManager:
     def __init__(self, config_path="settings.json"):
         self.config_path = Path(config_path)
-        # 預設配置
+        # 預設配置：將分類清空
         self.default_config = {
-            "categories": [
-                {"name": "Art", "icon": "🎨", "theme": "Red"},
-                {"name": "Dev", "icon": "💻", "theme": "Blue"},
-                {"name": "Writing", "icon": "📝", "theme": "Green"}
-            ],
+            "categories": [],
             "blacklist_exes": [
                 "explorer.exe", "SystemSettings.exe", "NVIDIA Overlay.exe", 
                 "TextInputHost.exe", "ApplicationFrameHost.exe", "ShellExperienceHost.exe",
@@ -37,7 +34,6 @@ class ConfigManager:
             try:
                 with open(self.config_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    # 相容舊版設定檔，若無 categories 則注入預設
                     if "categories" not in data:
                         data["categories"] = self.default_config["categories"]
                     return data
@@ -52,7 +48,6 @@ class ConfigManager:
             json.dump(config, f, ensure_ascii=False, indent=4)
 
     def get_category_map(self):
-        """產生所有 UI 共用的「分類對照表」，方便快速取用圖示與樣式"""
         cat_map = {}
         for c in self.config.get("categories", []):
             theme_key = c.get("theme", "Gray")
@@ -60,6 +55,4 @@ class ConfigManager:
                 "icon": c.get("icon", "📁"),
                 "style": TAG_THEMES.get(theme_key, TAG_THEMES["Gray"])
             }
-        # 強制附加未分類標籤
-        cat_map["Uncategorized"] = {"icon": "", "style": TAG_THEMES["Uncategorized"]}
         return cat_map

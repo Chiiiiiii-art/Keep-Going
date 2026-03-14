@@ -1,19 +1,18 @@
-import sys
-import ctypes
-# 核心修正：強制開啟 DPI 感知，防止多螢幕座標偏移
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(2)
-except Exception:
-    ctypes.windll.user32.SetProcessDPIAware()
+# launcher.py
 
+import sys
+# 必須在最頂部設定，解決 COM error 0x80010106
 sys.coinit_flags = 2 
+
 import os
+import ctypes
 from datetime import datetime
 from pathlib import Path
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QFrame)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QGuiApplication
+
 
 # 導入功能
 from main_gui import KeepGoingUI

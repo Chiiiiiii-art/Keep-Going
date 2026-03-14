@@ -1,9 +1,11 @@
 import sys
+import shutil
+import copy
 from pathlib import Path
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, 
                              QWidget, QLabel, QLineEdit, QPushButton, QListWidget, 
-                             QInputDialog, QComboBox, QFrame, QListWidgetItem, QMessageBox)
-from PyQt6.QtCore import Qt, QSize
+                             QInputDialog, QComboBox, QFrame, QListWidgetItem, QMessageBox, QApplication)
+from PyQt6.QtCore import Qt, QSize, QProcess
 from PyQt6.QtGui import QColor, QPixmap, QIcon, QPainter
 from settings_manager import ConfigManager, TAG_THEMES
 
@@ -150,7 +152,7 @@ class SettingsDialog(QDialog):
         
         other_layout.addWidget(QLabel("<b>危險操作與系統管理</b><br><span style='color:gray; font-size:12px;'>此區域的設定將對系統資料產生不可逆的影響</span>"))
         
-        reset_btn = QPushButton("⚠️ 還原原廠設定")
+        reset_btn = QPushButton("⚠️ 恢復原廠設定")
         reset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         reset_btn.setObjectName("DangerButton") 
         reset_btn.clicked.connect(self.factory_reset)
@@ -234,18 +236,23 @@ class SettingsDialog(QDialog):
     def save_and_close(self):
         self.config["blacklist_exes"] = [self.black_exe_list.item(i).text() for i in range(self.black_exe_list.count())]
         self.config_mgr.save_config(self.config)
+        
+        # 關鍵修復：強制把最新的設定狀態同步給主畫面的 Engine，解決正常修改標籤卻沒更新的問題
+        if self.parent() and hasattr(self.parent(), "engine"):
+            self.parent().engine.scanner.config_mgr.config = copy.deepcopy(self.config)
+            
         self.accept()
 
     def factory_reset(self):
-        # --- 1. 警告視窗 (手寫) ---
+        # --- 1. 警告視窗 ---
         warn_dlg = QDialog(self)
-        warn_dlg.setWindowTitle("確定要還原原廠設定嗎？")
+        warn_dlg.setWindowTitle("確定要恢復原廠設定嗎？")
         warn_dlg.setFixedSize(400, 180)
         
         warn_layout = QVBoxLayout(warn_dlg)
         warn_layout.setContentsMargins(30, 30, 30, 25)
         
-        warn_content = QLabel("<b>還原原廠設定</b><br><br>這將會清除所有視窗與分頁的標籤記憶，以及自訂的系統分類和黑名單設定，此操作無法復原！")
+        warn_content = QLabel("<b>恢復原廠設定</b><br><br>這將會徹底清除所有視窗與分頁的標籤記憶、自訂設定、歷史紀錄檔以及<b>所有已儲存的截圖圖片</b>，此操作完全無法復原！")
         warn_content.setWordWrap(True)
         warn_content.setStyleSheet("color: #EBEBEA; font-size: 14px;")
         warn_layout.addWidget(warn_content)
@@ -256,7 +263,7 @@ class SettingsDialog(QDialog):
         btn_cancel = QPushButton("取消")
         btn_cancel.setStyleSheet("QPushButton { color: #9B9A97 !important; background: transparent !important; border: none !important; padding: 8px 15px; } QPushButton:hover { background-color: rgba(255, 255, 255, 0.05) !important; color: #EBEBEA !important; border-radius: 6px; }")
         
-        btn_restore = QPushButton("還原")
+        btn_restore = QPushButton("徹底恢復")
         btn_restore.setStyleSheet("QPushButton { color: #FF4D4D !important; background: transparent !important; border: none !important; padding: 8px 15px; font-weight: bold; } QPushButton:hover { background-color: rgba(255, 77, 77, 0.1) !important; border-radius: 6px; }")
         
         btn_cancel.clicked.connect(warn_dlg.reject)
@@ -266,18 +273,30 @@ class SettingsDialog(QDialog):
         warn_layout.addLayout(btn_area)
         
         if warn_dlg.exec():
-            # 執行還原
-            memory_files = ["WorkSnap_Data/tag_memory.json", "WorkSnap_Data/checkbox_memory.json"]
-            for mf in memory_files:
-                path = Path(mf)
-                if path.exists():
-                    try: path.unlink()
-                    except: pass
+            # --- 執行徹底物理清除 ---
+            # 1. 殺掉 WorkSnap_Data 裡面所有的東西 (圖片、日誌、記憶檔)
+            worksnap_dir = Path("WorkSnap_Data")
+            if worksnap_dir.exists() and worksnap_dir.is_dir():
+                for item in worksnap_dir.iterdir():
+                    try:
+                        if item.is_dir():
+                            shutil.rmtree(item)
+                        else:
+                            item.unlink()
+                    except Exception as e:
+                        print(f"清理失敗 {item}: {e}")
             
-            self.config = self.config_mgr.default_config
+            # 2. 殺掉設定檔並重置為純淨的白紙狀態 (深拷貝防止污染)
+            if self.config_mgr.config_path.exists():
+                try: self.config_mgr.config_path.unlink()
+                except: pass
+                
+            self.config = copy.deepcopy(self.config_mgr.default_config)
+            # 雙重保險：強制確保 categories 為空
+            self.config["categories"] = [] 
             self.config_mgr.save_config(self.config)
             
-            # --- 2. 成功視窗 (手寫，解決那個藍色半圓問題) ---
+            # --- 成功視窗 ---
             done_dlg = QDialog(self)
             done_dlg.setWindowTitle("完成")
             done_dlg.setFixedSize(350, 150)
@@ -285,19 +304,20 @@ class SettingsDialog(QDialog):
             done_layout = QVBoxLayout(done_dlg)
             done_layout.setContentsMargins(30, 30, 30, 25)
             
-            done_content = QLabel("已還原原廠設定。<br>請重新掃描或重啟應用程式以套用變更。")
+            done_content = QLabel("系統已徹底恢復至初始狀態，所有標籤與資料皆已清空。<br>應用程式即將重新啟動以套用最乾淨的環境。")
             done_content.setWordWrap(True)
             done_content.setStyleSheet("color: #EBEBEA; font-size: 14px;")
             done_layout.addWidget(done_content)
             
             ok_area = QHBoxLayout()
             ok_area.addStretch()
-            btn_ok = QPushButton("確 定")
-            # 這裡把按鈕加上一點邊框，比較好點擊
+            btn_ok = QPushButton("重新啟動")
             btn_ok.setStyleSheet("QPushButton { color: #EBEBEA !important; background: transparent !important; border: 1px solid #3F3F3F !important; border-radius: 6px !important; padding: 6px 20px; font-weight: bold; } QPushButton:hover { background-color: rgba(255, 255, 255, 0.05) !important; }")
             btn_ok.clicked.connect(done_dlg.accept)
             ok_area.addWidget(btn_ok)
             done_layout.addLayout(ok_area)
             done_dlg.exec()
             
-            self.accept()
+            # 關鍵：強制重啟 App 確保所有 PyQt 記憶體狀態重置
+            QProcess.startDetached(sys.executable, sys.argv)
+            QApplication.quit()

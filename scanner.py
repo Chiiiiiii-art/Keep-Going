@@ -45,7 +45,8 @@ class WindowScanner:
             w, h = rect[2] - rect[0], rect[3] - rect[1]
 
             active_windows.append({
-                "title": title, "exe": exe_name or "Unknown", "category": "Uncategorized",
+                "title": title, "exe": exe_name or "Unknown", 
+                "category": None, # 改為 None
                 "hwnd": hwnd, "rect": (rect[0], rect[1], w, h)
             })
 
