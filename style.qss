@@ -277,7 +277,7 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
 /* --- 13. 危險操作按鈕 (Notion Style) --- */
 /* 修改此段落 */
 QMessageBox QLabel {
-    min-width: 0px; /* 移除強制寬度 */
+    min-width: 150px; 
     padding-left: 10px;
     padding-right: 20px;
 }

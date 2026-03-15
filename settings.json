@@ -7,10 +7,14 @@
         "TextInputHost.exe",
         "ApplicationFrameHost.exe",
         "ShellExperienceHost.exe",
-        "Taskmgr.exe"
+        "Taskmgr.exe",
+        "python.exe",
+        "pythonw.exe"
     ],
     "blacklist_titles": [
         "Program Manager",
+        "Keep-Going | 下班進度紀錄",
+        "Keep-Going 控制中心",
         "設定",
         "Windows 輸入體驗"
     ]
