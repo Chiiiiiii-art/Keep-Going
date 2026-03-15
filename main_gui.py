@@ -4,11 +4,11 @@ import sys
 import os
 import json
 import ctypes
-import traceback  # 用於輸出詳細錯誤訊息
+import traceback
 from urllib.parse import urlparse
 from pathlib import Path
 
-# 修正：消除 Windows 下的 DPI 存取被拒警告，並優化縮放
+# 修正：消除 Windows DPI 權限警告 (放在 QApplication 之前)
 os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
 os.environ["QT_AUTOSCREENSCALEFACTOR"] = "1"
 
@@ -35,12 +35,13 @@ def create_emoji_icon(emoji_char, size=20):
     painter.end()
     return QIcon(pixmap)
 
-# --- UI 元件類別 ---
+# --- 功能：懸停自動聚焦的輸入框 ---
 class HoverLineEdit(QLineEdit):
     def enterEvent(self, event):
         self.setFocus()
         super().enterEvent(event)
 
+# --- 功能：時數選擇器 ---
 class DurationWidget(QLabel):
     def __init__(self, parent=None):
         super().__init__("0.0h", parent)
@@ -153,9 +154,7 @@ class KeepGoingUI(QMainWindow):
         self.refresh_btn = QPushButton("🔄 重新掃描"); self.refresh_btn.setObjectName("RefreshButton")
         self.archive_btn = QPushButton("確認存檔並下班！"); self.archive_btn.setObjectName("ArchiveButton")
         
-        self.settings_btn.clicked.connect(self.open_settings)
-        self.refresh_btn.clicked.connect(self.refresh_list)
-        self.archive_btn.clicked.connect(self.start_archive)
+        self.settings_btn.clicked.connect(self.open_settings); self.refresh_btn.clicked.connect(self.refresh_list); self.archive_btn.clicked.connect(self.start_archive)
         
         footer.addWidget(self.settings_btn); footer.addWidget(self.refresh_btn); footer.addStretch(); footer.addWidget(self.archive_btn)
         main_layout.addLayout(footer)
@@ -175,11 +174,9 @@ class KeepGoingUI(QMainWindow):
             id_key = item.get('url') or item['title']
             item['category'] = self.tag_memory.get(id_key, item.get('category'))
             if self.filter_checkbox.isChecked() and item['category'] is None: continue
-            
             exe = item.get('exe', 'Unknown')
             if exe not in apps: apps[exe] = {'normal': [], 'domains': {}}
             is_browser = item.get('type') == 'browser_tab' or exe.lower() in ['chrome.exe', 'edge.exe', 'brave.exe', 'firefox.exe', 'comet.exe']
-            
             if is_browser and 'url' in item and item['url']:
                 dom = self.get_domain(item['url'])
                 apps[exe]['domains'].setdefault(dom, []).append(item)
@@ -205,48 +202,50 @@ class KeepGoingUI(QMainWindow):
         child = QTreeWidgetItem(parent)
         child.setText(0, data['title'][:75])
         child.setData(0, Qt.ItemDataRole.UserRole, data)
-        
         container = QWidget(); layout = QHBoxLayout(container); layout.setContentsMargins(5, 0, 5, 0); layout.setSpacing(15)
-        self.create_tag_picker(data, container)
+        
+        # 傳入 child 參數，確保分類變更時能同步 TreeItem 資料
+        self.create_tag_picker(data, container, child)
         
         dur_widget = DurationWidget(); dur_widget.set_active(data.get('category') is not None); layout.addWidget(dur_widget)
-        
-        note = HoverLineEdit(data.get('note', ''))
-        note.setPlaceholderText("在此輸入進度備註..."); note.setObjectName("NoteEdit")
-        layout.addWidget(note)
-        
+        note = HoverLineEdit(data.get('note', '')); note.setPlaceholderText("在此輸入進度備註..."); note.setObjectName("NoteEdit"); layout.addWidget(note)
         self.tree.setItemWidget(child, 1, container)
 
-    def create_tag_picker(self, data, container):
+    def create_tag_picker(self, data, container, item):
         cat_map = self.engine.scanner.config_mgr.get_category_map()
         tag_name = data.get('category')
-        
         if tag_name and tag_name in cat_map:
             info = cat_map[tag_name]; style = info["style"]
             btn_text = f"{info['icon']} {tag_name}".strip()
             btn_style = f"background-color: {style['bg']}; color: white; border: {style['border']}; border-radius: 4px; font-weight: bold; font-size: 11px; padding: 6px 10px;"
         else:
-            btn_text = "(未分類)"
-            btn_style = "background-color: transparent; color: #555555; border: 1px dashed #333333; border-radius: 4px; font-weight: bold; font-size: 11px; padding: 6px 10px;"
+            btn_text = "(未分類)"; btn_style = "background-color: transparent; color: #555555; border: 1px dashed #333333; border-radius: 4px; font-weight: bold; font-size: 11px; padding: 6px 10px;"
         
         btn = QPushButton(btn_text); btn.setObjectName("TagButton"); btn.setFixedWidth(120); btn.setStyleSheet(btn_style)
         menu = QMenu(self)
         for name, inf in cat_map.items():
             action = QAction(name, self); action.setIcon(create_emoji_icon(inf['icon']))
-            action.triggered.connect(lambda chk, c=name, d=data, cnr=container: self.change_category(d, c, cnr))
+            # 同步將 item 傳入 change_category
+            action.triggered.connect(lambda chk, c=name, d=data, cnr=container, it=item: self.change_category(d, c, cnr, it))
             menu.addAction(action)
         menu.addSeparator()
-        clear_action = QWidgetAction(self); clear_widget = ClearTagWidget()
-        clear_widget.clicked.connect(lambda: (self.change_category(data, None, container), menu.close()))
-        clear_action.setDefaultWidget(clear_widget); menu.addAction(clear_action)
+        clear_widget = ClearTagWidget()
+        clear_widget.clicked.connect(lambda it=item: (self.change_category(data, None, container, it), menu.close()))
+        clear_action = QWidgetAction(self); clear_action.setDefaultWidget(clear_widget); menu.addAction(clear_action)
         btn.setMenu(menu); container.layout().insertWidget(0, btn)
 
-    def change_category(self, data, new_cat, container):
+    def change_category(self, data, new_cat, container, item):
+        # 1. 更新記憶體資料
         data['category'] = new_cat
+        # 2. 關鍵修正：將更新後的資料寫入 TreeItem 的 UserRole，解決存檔抓不到標籤的問題
+        item.setData(0, Qt.ItemDataRole.UserRole, data)
+        
         id_key = data.get('url') or data['title']
         if new_cat is None: 
             self.tag_memory.pop(id_key, None)
-            with open(self.memory_file, 'w', encoding='utf-8') as f: json.dump(self.tag_memory, f, ensure_ascii=False)
+            try:
+                with open(self.memory_file, 'w', encoding='utf-8') as f: json.dump(self.tag_memory, f, ensure_ascii=False)
+            except: pass
         else: self.save_memory(id_key, new_cat)
             
         if self.filter_checkbox.isChecked() and new_cat is None:
@@ -256,7 +255,7 @@ class KeepGoingUI(QMainWindow):
                 w = container.layout().itemAt(i).widget()
                 if isinstance(w, QPushButton) and w.objectName() == "TagButton": w.setParent(None)
                 elif isinstance(w, DurationWidget): w.set_active(new_cat is not None)
-            self.create_tag_picker(data, container)
+            self.create_tag_picker(data, container, item)
 
     def start_archive(self):
         try:
@@ -265,6 +264,7 @@ class KeepGoingUI(QMainWindow):
             while it.value():
                 item = it.value(); data = item.data(0, Qt.ItemDataRole.UserRole)
                 if data and data.get('category') is not None:
+                    # 關鍵：從 UI 元件抓取使用者輸入的最新 備註 與 時數
                     container = self.tree.itemWidget(item, 1)
                     if container:
                         for i in range(container.layout().count()):
@@ -277,44 +277,27 @@ class KeepGoingUI(QMainWindow):
             
             if not selected:
                 print("⚠️ 後臺提醒：目前清單中沒有任何已分類項目可供存檔。")
-                msg = QMessageBox(self)
-                msg.setIcon(QMessageBox.Icon.Warning)
-                msg.setWindowTitle("提示")
-                msg.setText("目前沒有已分類的項目可供存檔。")
-                msg.setInformativeText("請點擊項目旁邊的標籤按鈕設定分類。")
-                msg.setStyleSheet("QLabel { min-width: 280px; min-height: 40px; font-size: 13px; }")
-                msg.exec()
-                return
+                msg = QMessageBox(self); msg.setIcon(QMessageBox.Icon.Warning); msg.setWindowTitle("提示")
+                msg.setText("目前沒有已分類的項目可供存檔。"); msg.setInformativeText("請先點擊項目旁邊的標籤按鈕設定分類。")
+                msg.setStyleSheet("QLabel { min-width: 280px; min-height: 40px; }") # 修復三角形顯示問題
+                msg.exec(); return
 
             print(f"🚀 開始存檔流程，共處理 {len(selected)} 筆項目...")
             self.controller.run_archive_flow(selected)
             QMessageBox.information(self, "完成", "存檔已成功！")
-            
         except Exception as e:
-            err_trace = traceback.format_exc()
-            print(f"❌ 存檔過程出錯：\n{err_trace}")
-            err_msg = QMessageBox(self)
-            err_msg.setIcon(QMessageBox.Icon.Critical)
-            err_msg.setWindowTitle("存檔錯誤")
-            err_msg.setText(f"發生不可預期錯誤：{str(e)}")
-            err_msg.setDetailedText(err_trace)
-            err_msg.setStyleSheet("QLabel { min-width: 300px; }")
-            err_msg.exec()
+            print(f"❌ 存檔錯誤：\n{traceback.format_exc()}")
+            QMessageBox.critical(self, "錯誤", f"存檔失敗: {str(e)}")
 
     def open_settings(self):
         try:
             from settings_dialog import SettingsDialog
-            if SettingsDialog(self).exec():
-                self.engine.scanner.update_settings()
-                self.refresh_list()
-        except Exception as e:
-            print(f"❌ 無法開啟設定視窗：{e}")
+            if SettingsDialog(self).exec(): self.engine.scanner.update_settings(); self.refresh_list()
+        except Exception as e: print(f"❌ 無法開啟設定：{e}")
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
-    base_path = Path(__file__).resolve().parent
-    qss_path = base_path / "style.qss"
+    app = QApplication(sys.argv); app.setStyle("Fusion")
+    base_path = Path(__file__).resolve().parent; qss_path = base_path / "style.qss"
     if qss_path.exists(): app.setStyleSheet(qss_path.read_text(encoding="utf-8"))
     w = KeepGoingUI(); w.show()
     sys.exit(app.exec())

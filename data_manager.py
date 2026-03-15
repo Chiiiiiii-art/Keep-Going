@@ -20,13 +20,19 @@ class DataManager:
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
     def generate_image_path(self, tag, keyword=""):
-        # 允許建立新資料夾（針對後來新增的自訂標籤）
-        target_dir = self.base_dir / tag
+        # 強制確保 tag 不是 None，如果是 None 則改為 "Uncategorized"
+        safe_tag = str(tag) if tag is not None else "Uncategorized"
+        
+        # 允許建立新資料夾
+        target_dir = self.base_dir / safe_tag
         target_dir.mkdir(parents=True, exist_ok=True)
         
         now = datetime.now()
         timestamp_str = now.strftime("%Y%m%d_%H%M%S")
-        safe_keyword = "".join([c for c in keyword if c.isalnum() or c in (' ', '_')]).rstrip()
+        
+        # 確保 keyword 也不是 None
+        safe_kw = keyword if keyword is not None else ""
+        safe_keyword = "".join([c for c in safe_kw if c.isalnum() or c in (' ', '_')]).rstrip()
         safe_keyword = f"_{safe_keyword}" if safe_keyword else ""
         
         filename = f"{timestamp_str}{safe_keyword}.png"
